@@ -1,6 +1,6 @@
 // Sends the built ROM to Kyle's iPhone over PairDrop (https://pairdrop.net).
 //
-//   node tools/send-to-phone.mjs [file.nds]
+//   node tools/send-to-phone.mjs [file.nds] [--pair]
 //
 // The browser profile is kept in %LOCALAPPDATA%\pokelegends-pairdrop, so once the phone
 // is paired, later sends need no code. If no paired phone is online, this opens PairDrop's
@@ -11,7 +11,9 @@ import { chromium } from 'playwright';
 import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
-const file = resolve(process.argv[2] ?? 'PokeLegendsofNine-DS.nds');
+const args = process.argv.slice(2);
+const file = resolve(args.find(a => a.endsWith('.nds')) ?? 'PokeLegendsofNine-DS.nds');
+const forcePair = args.includes('--pair'); // show a new code even if a pairing is saved
 const profile = join(process.env.LOCALAPPDATA ?? '.', 'pokelegends-pairdrop');
 
 function fail(msg) {
@@ -31,7 +33,7 @@ try {
 
     const online = await peer.waitFor({ state: 'attached', timeout: 10_000 }).then(() => true, () => false);
     // PairDrop only shows "Edit paired devices" once a pairing is saved in this profile.
-    const paired = online || await page.locator('#edit-paired-devices').isVisible();
+    const paired = !forcePair && (online || await page.locator('#edit-paired-devices').isVisible());
     if (!online && paired) {
         console.log('Paired phone is offline. Open pairdrop.net on the iPhone. Waiting 5 minutes...');
         await peer.waitFor({ state: 'attached', timeout: 300_000 })

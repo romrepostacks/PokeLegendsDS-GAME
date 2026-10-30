@@ -41,4 +41,4 @@ NODE		?= /c/Program\ Files/nodejs/node.exe
 
 .PHONY: send
 send: $(ROM)
-	$(NODE) tools/send-to-phone.mjs $(ROM)
+	$(NODE) tools/send-to-phone.mjs $(ROM) $(if $(PAIR),--pair)
