@@ -29,8 +29,15 @@ const peer = page.locator('x-peer.type-secret').first();
 try {
     await page.goto('https://pairdrop.net/');
 
-    const paired = await peer.waitFor({ state: 'attached', timeout: 10_000 }).then(() => true, () => false);
-    if (!paired) {
+    const online = await peer.waitFor({ state: 'attached', timeout: 10_000 }).then(() => true, () => false);
+    // PairDrop only shows "Edit paired devices" once a pairing is saved in this profile.
+    const paired = online || await page.locator('#edit-paired-devices').isVisible();
+    if (!online && paired) {
+        console.log('Paired phone is offline. Open pairdrop.net on the iPhone. Waiting 5 minutes...');
+        await peer.waitFor({ state: 'attached', timeout: 300_000 })
+            .catch(() => fail('the phone did not come online within 5 minutes.'));
+    }
+    else if (!paired) {
         await page.click('#pair-device');
         const key = page.locator('#pair-device-dialog .key');
         await page.waitForFunction(el => !el.textContent.includes('000 000'), await key.elementHandle(),
