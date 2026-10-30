@@ -3,10 +3,10 @@
 #
 #   python tools/art/make_player.py art/sprites/player.png
 #
-# Sheet: 128x256, frames are 32x32, three columns per row.
-#   Rows 0-3: walk  (down, up, left, right)   columns: stand, step 1, step 2
-#   Rows 4-7: run   (down, up, left, right)   columns: passing, stride 1, stride 2
-#   Rows 8-11: bike (down, up, left, right)   columns: coast, pedal 1, pedal 2
+# Sheet: 256x512, frames are 32x32.
+#   Rows 0-3: walk  (down, up, left, right)  columns: passing, half, full, half, full
+#   Rows 4-7: run   (down, up, left, right)  columns as walk (the two legs alternate)
+#   Rows 8-11: bike (down, up, left, right)  columns: coast, pedal 1, pedal 2
 # Right is always the left row mirrored. 15 colours + transparent, so it converts to a
 # 4bpp (16 colour) DS texture.
 
@@ -165,80 +165,93 @@ def body_side(f, dx=0, dy=0, bottom=22):
     f.rect(12 + dx, 14 + dy, 18 + dx, 15 + dy, "W")
 
 
-# --- Walk --------------------------------------------------------------------------
+# --- Walk and run ------------------------------------------------------------------
+#
+# Both use five poses: passing, then half and full stride on each leg. q is the stride:
+# 0 passing, +-0.5 half, +-1 full. Positive means the near (left on screen) leg leads.
 
-def walk_down(step, back=False):
+STRIDES = (0, 0.5, 1, -0.5, -1)
+
+
+def line(f, x0, y0, x1, y1, width, c):
+    """A thick line, for limbs that pivot from a fixed joint."""
+    steps = max(abs(x1 - x0), abs(y1 - y0), 1)
+    for i in range(steps + 1):
+        x = round(x0 + (x1 - x0) * i / steps)
+        y = round(y0 + (y1 - y0) * i / steps)
+        f.rect(x, y, x + width - 1, y + width - 1, c)
+
+
+def limb_arm(f, sx, sy, hx, hy, sleeve, outline=True):
+    """An arm from a fixed shoulder to the hand. Only the hand moves, so the shoulder
+    stays put through the walk."""
+    if outline:
+        line(f, sx + 1, sy, hx + 1, hy, 2, "o")    # dark back edge, clean on the diagonal
+    line(f, sx, sy, hx, hy, 2, sleeve)
+    f.rect(hx, hy + 1, hx + 1, hy + 2, "N")
+
+
+def limb_leg(f, hip, foot, top, lift, trouser):
+    """A leg from the hip to the foot. The far leg uses a darker colour, so the eye can
+    tell the two legs apart and see them alternate."""
+    ankle = 28 - lift
+    line(f, hip, top, foot, ankle, 3, trouser)
+    f.rect(foot - 1, ankle + 1, foot + 2, ankle + 2, "B")
+
+
+def strides_front(q, full_lift, full_swing):
+    """Foot lifts and arm swings for the front and back views."""
+    lift = round(abs(q) * full_lift)
+    swing = round(abs(q) * full_swing)
+    lifts = (lift, 0) if q > 0 else (0, lift)
+    swings = (-swing, swing) if q > 0 else (swing, -swing)
+    return lifts, swings
+
+
+def walk_down(q, back=False):
     f = Frame()
-    # Opposite arm and leg: the arm on the side of the lifted foot swings back (shorter
-    # from the front), the other swings forward (longer).
-    lift = {0: (0, 0), 1: (1, 0), 2: (0, 1)}[step]
-    swing = {0: (0, 0), 1: (-2, 2), 2: (2, -2)}[step]
-    legs_front(f, *lift)
+    lifts, swings = strides_front(q, 2, 2)
+    legs_front(f, *lifts)
     torso_front(f, back)
-    arm_front(f, -1, 15, 22 + swing[0])
-    arm_front(f, 1, 15, 22 + swing[1])
+    arm_front(f, -1, 15, 22 + swings[0])
+    arm_front(f, 1, 15, 22 + swings[1])
     (head_back if back else head_front)(f)
     return f.outline()
 
 
-def walk_left(step):
+def walk_left(q):
     f = Frame()
-    if step == 0:
-        f.rect(14, 23, 17, 28, "N")
-        f.rect(13, 29, 17, 30, "B")
-    else:
-        front, back = (11, 17) if step == 1 else (12, 16)
-        f.rect(back, 23, back + 2, 27, "N")
-        f.rect(back, 28, back + 3, 29, "B")
-        f.rect(front + 1, 23, front + 3, 28, "N")
-        f.rect(front, 29, front + 3, 30, "B")
+    limb_arm(f, 16, 16, 16 - round(q * 3), 20, "r", outline=False)   # far arm, behind
+    limb_leg(f, 15, 15 + round(q * 3), 23, 0, "p")                   # far leg
+    limb_leg(f, 15, 15 - round(q * 3), 23, 0, "N")                   # near leg
     body_side(f)
-    ax = {0: 14, 1: 11, 2: 17}[step]  # arm swings opposite the front leg
-    arm_side(f, ax, 15, 22)
+    limb_arm(f, 14, 16, 14 + round(q * 3), 20, "r")                  # near arm
     head_side(f)
     return f.outline()
 
 
-# --- Run: longer strides, a bob, arms bent and pumping ------------------------------
-
-def run_down(step, back=False):
+def run_down(q, back=False):
     f = Frame()
-    dy = 0 if step == 0 else 1  # body dips on each stride
-    lift = {0: (0, 0), 1: (3, 0), 2: (0, 3)}[step]
-    legs_front(f, *lift, top=23 + dy)
+    dy = -1 if abs(q) == 1 else 0   # up off the ground at full stride
+    lifts, swings = strides_front(q, 3, 3)
+    legs_front(f, *lifts, top=23 + dy)
     torso_front(f, back, dy)
-    # Bent arms: the forward arm's mitten comes up to the chest, the other drops back.
-    arms = {0: (21, 21), 1: (18, 23), 2: (23, 18)}[step]
-    arm_front(f, -1, 15 + dy, arms[0] + dy)
-    arm_front(f, 1, 15 + dy, arms[1] + dy)
-    (head_back if back else head_front)(f, dy)
+    arm_front(f, -1, 15 + dy, 20 + swings[0] + dy)
+    arm_front(f, 1, 15 + dy, 20 + swings[1] + dy)
+    (head_back if back else head_front)(f, dy + 1)   # head dipped into the run
     return f.outline()
 
 
-def run_left(step):
+def run_left(q):
     f = Frame()
-    dy = 0 if step == 0 else 1
-    if step == 0:  # passing: one leg under the body, the other bent just behind it
-        f.rect(16, 23, 18, 26, "N")
-        f.rect(17, 26, 19, 27, "N")
-        f.rect(17, 28, 20, 28, "B")
-        f.rect(13, 23, 15, 28, "N")
-        f.rect(12, 29, 15, 30, "B")
-    else:
-        # Stride: legs open at an angle, the back foot just off the ground. Kept well
-        # short of horizontal so it reads as a jog, not a kick.
-        f.rect(16, 23 + dy, 18, 25 + dy, "N")   # back thigh
-        f.rect(17, 26, 19, 27, "N")             # back shin, angled down
-        f.rect(18, 28, 21, 28, "B")
-        f.rect(12, 23 + dy, 14, 27, "N")        # front leg reaching forward
-        f.rect(11, 28, 13, 28, "N")
-        f.rect(10, 29, 13, 30, "B")
-    body_side(f, -1, dy)  # leaning into the run
-    if step == 0:
-        arm_side(f, 14, 15 + dy, 21 + dy)
-    else:
-        arm_side(f, 13 if step == 1 else 16, 15 + dy, 21 + dy, bent=step == 1)
-    head_side(f, -1, dy)
+    dy = -1 if abs(q) == 1 else 0   # up off the ground at full stride
+    reach = round(q * 5)
+    limb_arm(f, 15, 16 + dy, 15 - round(q * 3), 19 + dy, "r", outline=False)
+    limb_leg(f, 15, 15 + reach, 23 + dy, 2 if q > 0 else 0, "p")     # the trailing foot lifts
+    limb_leg(f, 15, 15 - reach, 23 + dy, 2 if q < 0 else 0, "N")
+    body_side(f, -1, dy)
+    limb_arm(f, 14, 16 + dy, 14 + round(q * 3), 19 + dy, "r")        # bent, pumping
+    head_side(f, -2, dy)                                             # leaning into the run
     return f.outline()
 
 
@@ -318,13 +331,14 @@ def to_image(frame, mirror=False):
 
 
 def main(out):
-    sheet = Image.new("RGBA", (128, 512), (0, 0, 0, 0))
-    sets = [(walk_down, walk_left), (run_down, run_left), (bike_down, bike_left)]
-    for i, (down, left) in enumerate(sets):
+    sheet = Image.new("RGBA", (256, 512), (0, 0, 0, 0))
+    sets = [(walk_down, walk_left, STRIDES), (run_down, run_left, STRIDES),
+            (bike_down, bike_left, (0, 1, 2))]
+    for i, (down, left, poses) in enumerate(sets):
         rows = [
-            [down(s) for s in range(3)],
-            [down(s, back=True) for s in range(3)],
-            [left(s) for s in range(3)],
+            [down(s) for s in poses],
+            [down(s, back=True) for s in poses],
+            [left(s) for s in poses],
         ]
         for r, frames in enumerate(rows):
             for c, frame in enumerate(frames):

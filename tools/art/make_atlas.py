@@ -42,16 +42,16 @@ def shade(c, k):
     return tuple(max(0, min(255, int(v * k))) for v in c)
 
 
-# 0: plaza cobbles, staggered rows of rounded stones with dark joints.
+# Ground cells use big shapes and soft 2-texel joints. Thin lines swim as the camera
+# moves, because the DS has no mipmaps.
+# 0: plaza slabs, two rows of two.
 STONE = (200, 208, 220)
-JOINT = (172, 180, 196)
-fill(0, [STONE, shade(STONE, 0.95), shade(STONE, 1.04)])
-for row in range(4):
-    y0 = row * 8
-    off = 4 if row % 2 else 0
-    rect(0, 0, y0, C - 1, y0, JOINT)
-    for x in range(off, C, 8):
-        rect(0, x, y0, x, y0 + 7, JOINT)
+JOINT = (186, 194, 208)
+rect(0, 0, 0, C - 1, C - 1, STONE)
+rect(0, 0, 0, C - 1, 1, JOINT)
+rect(0, 0, 16, C - 1, 17, JOINT)
+rect(0, 0, 0, 1, 15, JOINT)
+rect(0, 16, 16, 17, C - 1, JOINT)
 
 # 1: cobbles under a thin dusting of snow
 for y in range(C):
@@ -65,20 +65,16 @@ fill(2, [(240, 244, 250), (228, 236, 246), (250, 252, 255)], [5, 3, 2])
 rect(2, 4, 20, 13, 21, (226, 234, 246))  # soft drift shadows
 rect(2, 18, 9, 27, 10, (226, 234, 246))
 
-# 3: dock planks, running across the tile, with nails
+# 3: dock planks, two boards across the tile
 WOOD = (150, 108, 72)
-fill(3, [WOOD, shade(WOOD, 0.92), shade(WOOD, 1.06)])
-for y0 in range(0, C, 8):
-    rect(3, 0, y0, C - 1, y0, (120, 86, 58))
-    for x in (3, 28):
-        put(3, x, y0 + 4, (60, 52, 50))
+rect(3, 0, 0, C - 1, C - 1, WOOD)
+rect(3, 0, 0, C - 1, 1, (128, 92, 62))
+rect(3, 0, 16, C - 1, 17, (128, 92, 62))
 
-# 4: sea water with light ripples
-fill(4, [(52, 100, 150), (46, 92, 140), (58, 110, 160)], [4, 3, 2])
-for y in range(2, C, 6):
-    x0 = rng.randrange(C)
-    for x in range(x0, x0 + 6):
-        put(4, x % C, y, (76, 126, 176))
+# 4: sea water, flat with one wide, soft ripple
+rect(4, 0, 0, C - 1, C - 1, (52, 100, 150))
+rect(4, 6, 10, 21, 11, (60, 110, 160))
+rect(4, 18, 24, 29, 25, (60, 110, 160))
 
 # 5: plain plaster wall (white, so vertex colours tint it)
 PLASTER = (236, 236, 236)

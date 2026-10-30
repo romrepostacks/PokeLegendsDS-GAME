@@ -234,13 +234,20 @@ static void draw_player(void)
     float px, pz;
     player_pos(&px, &pz);
 
-    // On foot: the leading foot for the first half of a step, then the passing frame.
-    // On the bike the pedals keep turning for the whole step and coast when stopped.
-    int frame;
-    if (player.mode == BIKE)
-        frame = player.step > 0 ? player.foot : 0;
-    else
-        frame = player.step > STEP_FRAMES[player.mode] / 2 ? player.foot : 0;
+    // On foot, each tile plays half stride, full stride, half stride, passing, on one leg
+    // and then the other. On the bike the pedals keep turning and coast when stopped.
+    int frame = 0;
+    if (player.step > 0 && player.mode == BIKE)
+    {
+        frame = player.foot;
+    }
+    else if (player.step > 0)
+    {
+        int len = STEP_FRAMES[player.mode];
+        int quarter = (len - player.step) * 4 / len;
+        if (quarter < 3)
+            frame = (player.foot == 1 ? 1 : 3) + (quarter == 1 ? 1 : 0);
+    }
     int u0 = frame * 32, v0 = (player.mode * 4 + player.dir) * 32;
 #ifdef TEST_POSE
     // Test builds only: show one sprite frame, for screenshots.
@@ -256,7 +263,7 @@ static void draw_player(void)
     // A 32x32 billboard leaning back to face the camera (about 39 degrees down).
     // Sized so one sprite pixel is one screen pixel at the game camera: any other scale
     // drops or doubles pixels unevenly, because the DS has no texture filtering.
-    const float w = 0.183f, h = 0.355f, up = 0.78f, back = -0.63f;
+    const float w = 0.125f, h = 0.2425f, up = 0.78f, back = -0.63f;
     NE_PolyBegin(GL_QUAD);
     NE_PolyColor(RGB15(31, 31, 31));
     NE_PolyTexCoord(u0, v0 + 32);
@@ -281,10 +288,12 @@ static const float VIEW_SIDE = 14.0f * CAM_ZOOM, VIEW_NORTH = 16.0f * CAM_ZOOM, 
 
 static void draw_scene(void)
 {
-    // Black 2 style: high and behind, tilted down at the player.
+    // Black 2 style: high and behind, tilted down at the player. At this distance a tile is
+    // 32 pixels wide at the player, so the 32x32 ground textures draw 1:1 and don't shimmer,
+    // and sideways movement is a whole number of pixels per frame.
     NE_CameraSet(camera,
-                 cam_x, 1.5f * CAM_ZOOM, cam_z + 1.7f * CAM_ZOOM,
-                 cam_x, 0.0f, cam_z - 0.15f,
+                 cam_x, 1.025f * CAM_ZOOM, cam_z + 1.16f * CAM_ZOOM,
+                 cam_x, 0.0f, cam_z - 0.10f,
                  0, 1, 0);
     NE_CameraUse(camera);
 
@@ -329,7 +338,10 @@ int main(int argc, char **argv)
     NE_Material *town_mat = NE_MaterialCreate();
     NE_MaterialTexLoad(town_mat, NE_PAL256, 128, 128, NE_TEXGEN_TEXCOORD, saltmere_tex_bin);
     NE_Palette *town_pal = NE_PaletteCreate();
-    NE_PaletteLoad(town_pal, saltmere_pal_bin, saltmere_pal_bin_size / 2, NE_PAL256);
+    // Always a full 256 entries: with a shorter palette the last colour came out black.
+    static u16 town_colours[256];
+    memcpy(town_colours, saltmere_pal_bin, saltmere_pal_bin_size);
+    NE_PaletteLoad(town_pal, town_colours, 256, NE_PAL256);
     NE_MaterialSetPalette(town_mat, town_pal);
 
     const u32 *offsets = (const u32 *)saltmere_bin;
@@ -341,7 +353,7 @@ int main(int argc, char **argv)
     }
 
     player_mat = NE_MaterialCreate();
-    NE_MaterialTexLoad(player_mat, NE_PAL16, 128, 512,
+    NE_MaterialTexLoad(player_mat, NE_PAL16, 256, 512,
                        (NE_TextureFlags)(NE_TEXGEN_TEXCOORD | NE_TEXTURE_COLOR0_TRANSPARENT),
                        player_tex_bin);
     NE_Palette *player_pal = NE_PaletteCreate();
