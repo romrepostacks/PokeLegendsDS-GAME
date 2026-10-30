@@ -1,6 +1,6 @@
 # Kaelmoor — region bible (draft)
 
-Region 1 of Legends DS. All names are placeholders; mark up anything.
+Region 1 of **Poké Legends: Beyond the Nine**. All names are placeholders; mark up anything.
 
 ## Where Lands of Nine left off
 
@@ -82,8 +82,8 @@ Black 2's look, made from scratch: no ripped or traced Black 2 assets.
 - **Overworld:** low-poly 3D towns and routes on the DS 3D hardware, modelled in Blender. A tilted camera that swings for big moments (bridges, the Saltmere skyline, the crater descent).
 - **Characters:** small 2D sprites (32x32) with 4-direction walk cycles.
 - **Battles:** Legends of 9's whole-party battles: your whole party against a wild pack or a trainer's team, every Pokémon commanded, then everyone acting in speed order. Black 2 presentation: 3D-style backdrops per area, official front and back sprites with HP bars on the top screen, and a touch command menu on the bottom that steps through each of your Pokémon.
-  - Rules carried from Legends of 9: party of up to 10, and your whole living party fights. Wild packs are 1 to half your living party (max 4). Route trainers field 2–5, gym juniors 3–4, rivals and leaders 6.
-  - DS layout: the top screen shows the field. The bottom screen lists every Pokémon's HP and lets you tap targets. Battle sprites are 96x96 at up to 6 a side and shrink to 64x64 or 48x48 above that (Legends of 9's "dense" mode).
+  - Rules carried from Legends of 9's later versions: party of up to 6, and your whole living party fights. Wild packs are 1 to half your living party (max 3). Route trainers field 2–5, gym juniors 3–4, rivals and leaders 6.
+  - DS layout: the top screen shows the field. The bottom screen lists every Pokémon's HP and lets you tap targets. Battle sprites are full size (96x96) with up to 3 a side and shrink to 64x64 with 4–6 a side, so a full 6v6 fits.
 - **UI:** clean, flat Black 2 style menus and text boxes across both screens.
 - **Kaelmoor palette:** pale blues and whites by day, deep navy and aurora greens at night, warm orange only in Emberhalt.
 
@@ -146,7 +146,8 @@ sea to where the white and black dragons fell. That's the hook for region 2, wit
 Official sprites. The wild roster leans cold: tundra, marsh, mines, hot springs and sea ice, from all generations.
 
 **Starters.** In the prologue, Hale offers every base starter from Gen 1 to Gen 9, all 27 of them, on a
-generation-by-generation picker on the touch screen:
+grid on the touch screen. Highlighting a starter (moving the D-pad cursor onto it, or tapping it once) shows a short preview on the top screen: its
+animated sprite, name, type, a line of flavour text and its final evolution. Tapping again confirms the pick.
 
 | Gen | Grass | Fire | Water |
 |-----|-------|------|-------|
@@ -179,17 +180,10 @@ Every name below is a placeholder. Keep, rename or cut any of them.
 
 Returning names from Legends of 9 (Hawthorn, Hale, Kai, Wren, Rimefall Town) stay as they are.
 
-## Title options
+## Title
 
-All riff on *Poké Legends: Lands of Nine*:
-
-- **Poké Legends: Beyond the Nine** (recommended): says "continuation" and leaves room for region 2.
-- Poké Legends: Lands of Frost
-- Poké Legends: The Tenth Land
-- Poké Legends: Nine and Beyond
-- Poké Legends: Kaelmoor
+**Poké Legends: Beyond the Nine** (chosen 2026-10-30).
 
 ## Open questions
 
-- Game title: pick one above, or suggest another.
 - Placeholder names: keep or rename any in the table above.

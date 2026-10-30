@@ -6,8 +6,8 @@
 BLOCKSDS	?= /opt/wonderful/thirdparty/blocksds/core
 
 NAME		:= PokeLegendsofNine-DS
-GAME_TITLE	:= PokeLegendsofNine DS
-GAME_SUBTITLE	:= Legends of 9
+GAME_TITLE	:= Poke Legends: Beyond the Nine
+GAME_SUBTITLE	:= Kaelmoor
 GAME_AUTHOR	:= Kyle
 
 SOURCEDIRS	:= src
