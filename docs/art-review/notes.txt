@@ -1,0 +1,6 @@
+shot-south-plaza.png: game camera, south of the plaza. Crates, lamp posts, fountain, the piers at the bottom edge.
+shot-north-plaza.png: game camera, in front of the rail station.
+shot-fountain.png: game camera beside the tiered frozen fountain.
+shot-lighthouse-point.png: game camera on the rocky point, near the lighthouse. Boulders line the path.
+shot-harbour.png: game camera on the east pier.
+All shots use the placeholder-approved player. Player frames are unchanged while the review note is pending.

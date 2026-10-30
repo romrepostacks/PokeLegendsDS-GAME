@@ -1,7 +1,8 @@
-# Builds Port Saltmere in Blender from maps/saltmere.h and exports it as an OBJ with UVs
-# and vertex colours, ready for Nitro Engine's obj2dl.
+# Builds Port Saltmere in Blender from maps/saltmere.h and exports one OBJ per 8x8-tile
+# chunk (UVs and vertex colours), ready for Nitro Engine's obj2dl. The game only draws the
+# chunks near the camera, because the DS can't take the whole town in one frame.
 #
-#   blender -b --factory-startup --python tools/blender/build_saltmere.py -- OUT.obj OUT.blend
+#   blender -b --factory-startup --python tools/blender/build_saltmere.py -- OUT_DIR OUT.blend
 #
 # Every face maps onto one 32x32 cell of art/textures/saltmere.png (tools/art/make_atlas.py),
 # and its vertex colour tints that cell. One tile = 1 Blender unit. Blender X = column,
@@ -9,6 +10,7 @@
 # vertices only reach +-8 units even after obj2dl's scaling (0.25 per tile, so up to 64 tiles).
 
 import math
+import os
 import re
 import sys
 import zlib
@@ -16,11 +18,12 @@ import zlib
 import bpy
 
 ROOT = __file__.rsplit("tools", 1)[0]
-out_obj, out_blend = sys.argv[sys.argv.index("--") + 1:][:2]
+out_dir, out_blend = sys.argv[sys.argv.index("--") + 1:][:2]
 
 with open(ROOT + "maps/saltmere.h") as f:
     rows = re.findall(r'^\s*"([^"]*)",', f.read(), re.M)
 H, W = len(rows), len(rows[0])
+CHUNK = 8
 
 # Atlas cells (see make_atlas.py)
 COBBLE, DUSTED, SNOW, PLANK, WATER, WALL, WINDOW, DOOR = range(8)
@@ -34,7 +37,14 @@ WHITE = (1.0, 1.0, 1.0)
 # Pastel house colours: pale blue, cream, pale green, rose
 TINTS = [(0.78, 0.88, 1.0), (1.0, 0.94, 0.80), (0.82, 1.0, 0.90), (1.0, 0.84, 0.82)]
 
-verts, faces, uvs, colors = [], [], [], []
+chunks = {}          # (cx, cy) -> {"verts", "faces", "uvs", "colors"}
+current = (0, 0)
+
+
+def use_chunk(c, r):
+    """Faces go into the chunk holding (c, r). Whole objects use their centre."""
+    global current
+    current = (int(c) // CHUNK, int(r) // CHUNK)
 
 
 def cell_uv(cell, u, v):
@@ -49,11 +59,12 @@ def poly(corners, cell, tint=WHITE, corner_uv=None):
     """A quad or triangle with its own vertices, so faces keep their own UVs and tint."""
     if corner_uv is None:
         corner_uv = [(0, 0), (1, 0), (1, 1), (0, 1)][:len(corners)]
-    base = len(verts)
-    verts.extend((x - W / 2, y + H / 2, z) for x, y, z in corners)
-    faces.append(tuple(range(base, base + len(corners))))
-    uvs.extend(cell_uv(cell, u, v) for u, v in corner_uv)
-    colors.extend([tint] * len(corners))
+    m = chunks.setdefault(current, {"verts": [], "faces": [], "uvs": [], "colors": []})
+    base = len(m["verts"])
+    m["verts"].extend((x - W / 2, y + H / 2, z) for x, y, z in corners)
+    m["faces"].append(tuple(range(base, base + len(corners))))
+    m["uvs"].extend(cell_uv(cell, u, v) for u, v in corner_uv)
+    m["colors"].extend([tint] * len(corners))
 
 
 def tile(r, c):
@@ -112,6 +123,7 @@ def blocks(t):
 
 def building(r0, c0, r1, c1, i):
     """One building over a rectangle of '#' tiles: walls, a door, one pitched roof."""
+    use_chunk((c0 + c1 + 1) / 2, (r0 + r1 + 1) / 2)
     w, d = c1 - c0 + 1, r1 - r0 + 1
     big = w * d >= 20
     tint = TINTS[i % len(TINTS)]
@@ -185,6 +197,7 @@ def cone(cx, cy, z0, z1, rad, cell, tint=WHITE, sides=8):
 
 def fountain(r0, c0, r1, c1):
     """Tiered fountain, frozen solid: stone basin, column, upper bowl, ice spray."""
+    use_chunk((c0 + c1 + 1) / 2, (r0 + r1 + 1) / 2)
     cx, cy = (c0 + c1 + 1) / 2, -(r0 + r1 + 1) / 2
     R = (c1 - c0 + 1) / 2 - 0.1
     stone = (0.92, 0.94, 1.0)
@@ -252,6 +265,7 @@ for b in blocks("f"):
 
 for r, row in enumerate(rows):
     for c, t in enumerate(row):
+        use_chunk(c, r)
         if t == "~":
             ground(c, r, WATER_Z, WATER)
             continue
@@ -305,22 +319,29 @@ for r, row in enumerate(rows):
                          SNOW)
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
-mesh = bpy.data.meshes.new("Saltmere")
-mesh.from_pydata(verts, [], faces)
-uv_layer = mesh.uv_layers.new(name="UV")
-for loop in mesh.loops:
-    uv_layer.data[loop.index].uv = uvs[loop.vertex_index]
-attr = mesh.color_attributes.new("Col", "FLOAT_COLOR", "POINT")
-for i, col in enumerate(colors):
-    attr.data[i].color_srgb = (*col, 1.0)
-obj = bpy.data.objects.new("Saltmere", mesh)
-bpy.context.scene.collection.objects.link(obj)
-bpy.context.view_layer.objects.active = obj
-obj.select_set(True)
+os.makedirs(out_dir, exist_ok=True)
+objs = {}
+for (cx, cy), m in chunks.items():
+    mesh = bpy.data.meshes.new(f"Saltmere_{cx}_{cy}")
+    mesh.from_pydata(m["verts"], [], m["faces"])
+    uv_layer = mesh.uv_layers.new(name="UV")
+    for loop in mesh.loops:
+        uv_layer.data[loop.index].uv = m["uvs"][loop.vertex_index]
+    attr = mesh.color_attributes.new("Col", "FLOAT_COLOR", "POINT")
+    for i, col in enumerate(m["colors"]):
+        attr.data[i].color_srgb = (*col, 1.0)
+    obj = bpy.data.objects.new(mesh.name, mesh)
+    bpy.context.scene.collection.objects.link(obj)
+    objs[(cx, cy)] = obj
 
 bpy.ops.wm.save_as_mainfile(filepath=out_blend)
-bpy.ops.wm.obj_export(filepath=out_obj, export_selected_objects=True, export_colors=True,
-                      export_normals=False, export_uv=True, export_materials=False,
-                      forward_axis="NEGATIVE_Z", up_axis="Y")
-quads = sum(1 for f in faces if len(f) == 4)
-print(f"Saltmere: {quads} quads, {len(faces) - quads} triangles -> {out_obj}")
+for (cx, cy), obj in objs.items():
+    bpy.ops.object.select_all(action="DESELECT")
+    bpy.context.view_layer.objects.active = obj
+    obj.select_set(True)
+    bpy.ops.wm.obj_export(filepath=os.path.join(out_dir, f"{cx}_{cy}.obj"),
+                          export_selected_objects=True, export_colors=True,
+                          export_normals=False, export_uv=True, export_materials=False,
+                          forward_axis="NEGATIVE_Z", up_axis="Y")
+polys = {k: len(m["faces"]) for k, m in chunks.items()}
+print(f"Saltmere: {len(polys)} chunks, {sum(polys.values())} polygons, biggest {max(polys.values())}")

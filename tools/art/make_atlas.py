@@ -164,7 +164,7 @@ for i in range(C):
         put(15, i, j, (226, 240, 252))
         put(15, j, i, (226, 240, 252))
 
-colours = len(set(img.getdata()))
+colours = len(img.getcolors(1 << 16))
 assert colours <= 256, f"{colours} colours: too many for an 8bpp texture"
 img.save(sys.argv[1])
 print(f"saltmere atlas -> {sys.argv[1]} ({colours} colours)")
