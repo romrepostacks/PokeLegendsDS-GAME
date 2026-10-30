@@ -80,10 +80,18 @@ def legs_front(f, step):
 def arms_front(f, step):
     la = 1 if step == 2 else 0  # arms swing opposite to the lifted foot
     ra = 1 if step == 1 else 0
-    f.rect(9, 15, 10, 20 + la, "R")
-    f.rect(9, 21 + la, 10, 22 + la, "N")
-    f.rect(21, 15, 22, 20 + ra, "r")
-    f.rect(21, 21 + ra, 22, 22 + ra, "N")
+    f.rect(8, 15, 10, 20 + la, "R")    # sleeves: lit edge out, shaded edge in
+    f.rect(10, 16, 10, 20 + la, "r")
+    f.rect(8, 21 + la, 10, 22 + la, "N")
+    f.rect(21, 15, 23, 20 + ra, "r")
+    f.rect(21, 16, 21, 20 + ra, "R")
+    f.rect(21, 21 + ra, 23, 22 + ra, "N")
+
+
+def arm_seams(f):
+    """Dark line between each arm and the body, so the arms read as arms."""
+    f.rect(11, 16, 11, 21, "o")
+    f.rect(20, 16, 20, 21, "o")
 
 
 def cap(f, x0, x1):
@@ -101,6 +109,7 @@ def frame_down(step):
     f.rect(11, 15, 20, 22, "R")    # parka, hip length
     f.rect(18, 15, 20, 22, "r")
     f.rect(15, 16, 15, 22, "r")    # zip
+    arm_seams(f)
     f.rect(12, 15, 12, 19, "P")    # backpack straps
     f.rect(19, 15, 19, 19, "p")
     f.rect(11, 14, 20, 15, "W")    # fur collar
@@ -121,6 +130,7 @@ def frame_up(step):
     arms_front(f, step)
     f.rect(11, 15, 20, 22, "R")
     f.rect(18, 15, 20, 22, "r")
+    arm_seams(f)
     f.rect(12, 15, 19, 21, "P")    # backpack
     f.rect(17, 15, 19, 21, "p")
     f.rect(12, 15, 19, 16, "p")    # flap
@@ -148,7 +158,9 @@ def frame_left(step):
     f.rect(17, 15, 18, 22, "r")
     f.rect(12, 14, 18, 15, "W")    # collar
     ax = {0: 14, 1: 12, 2: 16}[step]  # arm swings with the stride
-    f.rect(ax, 16, ax + 1, 21, "r")
+    f.rect(ax - 1, 15, ax + 2, 22, "o")  # outline round the sleeve
+    f.rect(ax, 15, ax + 1, 21, "R")
+    f.rect(ax + 1, 16, ax + 1, 21, "r")
     f.rect(ax, 22, ax + 1, 22, "N")
     f.rect(14, 9, 19, 13, "H")     # hair at the back
     f.rect(11, 9, 15, 13, "S")     # face in profile
