@@ -12,7 +12,7 @@ GAME_AUTHOR	:= Kyle
 
 SOURCEDIRS	:= src
 INCLUDEDIRS	:= include maps
-BINDIRS		:= data/models
+BINDIRS		:= data/models data/textures
 
 LIBS		:= -lNE -lnds9
 LIBDIRS		:= $(BLOCKSDSEXT)/nitro-engine
@@ -29,15 +29,31 @@ BLENDER		?= /c/Program\ Files/Blender\ Foundation/Blender\ 5.2/blender.exe
 PYTHON		?= /c/Users/ADMIN/AppData/Local/Programs/Python/Python313/python.exe
 OBJ2DL		:= $(BLOCKSDSEXT)/nitro-engine/tools/obj2dl/obj2dl.py
 
-.PHONY: models
+IMG2DS		:= $(BLOCKSDSEXT)/nitro-engine/tools/img2ds/img2ds.py
+
+.PHONY: models textures
 models: data/models/saltmere.bin
+textures: data/textures/player_tex.bin data/textures/saltmere_tex.bin
 
 data/models/saltmere.bin: maps/saltmere.h tools/blender/build_saltmere.py
 	@mkdir -p build
 	$(BLENDER) -b --factory-startup --python tools/blender/build_saltmere.py -- \
 		$$(cygpath -w build/saltmere.obj) $$(cygpath -w art/models/saltmere.blend)
 	$(PYTHON) $$(cygpath -w $(OBJ2DL)) --input build/saltmere.obj --output $@ \
-		--texture 32 32 --use-vertex-color --scale 0.25
+		--texture 128 128 --use-vertex-color --scale 0.25
+
+# Pixel art is drawn by scripts, then converted to paletted DS textures.
+art/sprites/player.png: tools/art/make_player.py
+	$(PYTHON) -I $< $@
+
+art/textures/saltmere.png: tools/art/make_atlas.py
+	$(PYTHON) -I $< $@
+
+data/textures/player_tex.bin: art/sprites/player.png
+	$(PYTHON) $$(cygpath -w $(IMG2DS)) --input $< --name player --output data/textures --format PAL16
+
+data/textures/saltmere_tex.bin: art/textures/saltmere.png
+	$(PYTHON) $$(cygpath -w $(IMG2DS)) --input $< --name saltmere --output data/textures --format PAL256
 
 # Send the ROM to the iPhone over PairDrop. Prints a pair code if the phone isn't paired.
 # node is the Windows install, which the MSYS2 shell doesn't have on PATH.

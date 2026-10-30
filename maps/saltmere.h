@@ -4,7 +4,7 @@
 // tools/blender/build_saltmere.py reads it to build the 3D model, so edit it here and
 // run `make models` to rebuild the model.
 //
-//   #  building      c  crate        f  fountain
+//   #  building      c  crate        f  fountain     L  lighthouse
 //   .  stone plaza   ,  dock planks  ~  water
 //   P  player start (plaza)
 
@@ -30,7 +30,7 @@ static const char *const saltmere_map[SALTMERE_H] = {
     "~~~~,,,~~~~,,,~~",
     "~~~~,c,~~~~,,,~~",
     "~~~~,,,~~~~,,,~~",
-    "~~~~~~~~~~~~~~~~",
+    "~~~~~~~~~~~,L,~~",
     "~~~~~~~~~~~~~~~~",
     "~~~~~~~~~~~~~~~~",
     "~~~~~~~~~~~~~~~~",

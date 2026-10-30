@@ -5,8 +5,12 @@
 #include <fat.h>
 #include <nds.h>
 
+#include "player_pal_bin.h"
+#include "player_tex_bin.h"
 #include "saltmere.h"
 #include "saltmere_bin.h"
+#include "saltmere_pal_bin.h"
+#include "saltmere_tex_bin.h"
 
 // ---------------------------------------------------------------------------
 // Save test: a counter that goes up with A and survives a restart.
@@ -150,13 +154,14 @@ static const int DY[] = { 1, -1, 0, 0 };
 struct Player
 {
     int tx, ty;  // tile
-    int dir;
+    int dir;     // also the row in the sprite sheet
     int step;    // frames left in the current step, 0 when standing
-    float x, z;  // world position of the tile centre being walked to or stood on
+    int foot;    // which foot leads this step: walk frame 1 or 2
 };
 
 static NE_Camera *camera;
 static NE_Model *town;
+static NE_Material *player_mat;
 static Player player;
 static float cam_x, cam_z;
 
@@ -199,6 +204,7 @@ static void player_update(u32 held)
     player.tx = nx;
     player.ty = ny;
     player.step = STEP_FRAMES;
+    player.foot = player.foot == 1 ? 2 : 1;
 }
 
 // Where the player is drawn this frame: between the previous and the current tile.
@@ -214,34 +220,27 @@ static void draw_player(void)
     float px, pz;
     player_pos(&px, &pz);
 
+    // Walk frame: the leading foot for the first half of a step, then standing.
+    int frame = player.step > STEP_FRAMES / 2 ? player.foot : 0;
+    int u0 = frame * 32, v0 = player.dir * 32;
+
     NE_ViewPush();
     NE_ViewMove(px, 0, pz);
-    GFX_TEX_FORMAT = 0;
+    NE_PolyFormat(31, 1, (NE_LightEnum)0, NE_CULL_NONE, (NE_OtherFormatEnum)0);
+    NE_MaterialUse(player_mat);
 
-    // ponytail: placeholder billboard (32x32 sprite size) made of two coloured quads,
-    // until the sprite art pipeline exists.
-    const float w = 0.11f, h = 0.30f;
+    // A 32x32 billboard leaning back to face the camera (about 39 degrees down).
+    const float w = 0.16f, h = 0.32f, up = 0.78f, back = -0.63f;
     NE_PolyBegin(GL_QUAD);
-    NE_PolyColor(RGB15(6, 8, 16)); // legs
+    NE_PolyColor(RGB15(31, 31, 31));
+    NE_PolyTexCoord(u0, v0 + 32);
     NE_PolyVertex(-w, 0, 0);
+    NE_PolyTexCoord(u0 + 32, v0 + 32);
     NE_PolyVertex(w, 0, 0);
-    NE_PolyVertex(w, h * 0.45f, 0);
-    NE_PolyVertex(-w, h * 0.45f, 0);
-    NE_PolyColor(RGB15(28, 6, 6)); // jacket
-    NE_PolyVertex(-w, h * 0.45f, 0);
-    NE_PolyVertex(w, h * 0.45f, 0);
-    NE_PolyVertex(w, h, 0);
-    NE_PolyVertex(-w, h, 0);
-    NE_PolyEnd();
-
-    // A yellow arrow on the ground shows which way the player faces.
-    float fx = DX[player.dir] * 0.12f, fz = DY[player.dir] * 0.12f;
-    float sx = -fz * 0.5f, sz = fx * 0.5f;
-    NE_PolyBegin(GL_TRIANGLE);
-    NE_PolyColor(RGB15(31, 28, 4));
-    NE_PolyVertex(fx * 1.6f, 0.01f, fz * 1.6f);
-    NE_PolyVertex(fx * 0.8f + sx, 0.01f, fz * 0.8f + sz);
-    NE_PolyVertex(fx * 0.8f - sx, 0.01f, fz * 0.8f - sz);
+    NE_PolyTexCoord(u0 + 32, v0);
+    NE_PolyVertex(w, h * up, h * back);
+    NE_PolyTexCoord(u0, v0);
+    NE_PolyVertex(-w, h * up, h * back);
     NE_PolyEnd();
 
     NE_ViewPop();
@@ -281,6 +280,21 @@ int main(int argc, char **argv)
     camera = NE_CameraCreate();
     town = NE_ModelCreate(NE_Static);
     NE_ModelLoadStaticMesh(town, saltmere_bin);
+
+    NE_Material *town_mat = NE_MaterialCreate();
+    NE_MaterialTexLoad(town_mat, NE_PAL256, 128, 128, NE_TEXGEN_TEXCOORD, saltmere_tex_bin);
+    NE_Palette *town_pal = NE_PaletteCreate();
+    NE_PaletteLoad(town_pal, saltmere_pal_bin, saltmere_pal_bin_size / 2, NE_PAL256);
+    NE_MaterialSetPalette(town_mat, town_pal);
+    NE_ModelSetMaterial(town, town_mat);
+
+    player_mat = NE_MaterialCreate();
+    NE_MaterialTexLoad(player_mat, NE_PAL16, 128, 128,
+                       (NE_TextureFlags)(NE_TEXGEN_TEXCOORD | NE_TEXTURE_COLOR0_TRANSPARENT),
+                       player_tex_bin);
+    NE_Palette *player_pal = NE_PaletteCreate();
+    NE_PaletteLoad(player_pal, player_pal_bin, 16, NE_PAL16);
+    NE_MaterialSetPalette(player_mat, player_pal);
 
     for (int y = 0; y < SALTMERE_H; y++)
         for (int x = 0; x < SALTMERE_W; x++)
