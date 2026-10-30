@@ -14,3 +14,12 @@ SOURCEDIRS	:= src
 INCLUDEDIRS	:= include
 
 include $(BLOCKSDS)/sys/default_makefiles/rom_arm9/Makefile
+
+# Copy the ROM to iCloud Drive so it can be opened in Delta on the iPhone.
+# Local only: the .nds stays gitignored.
+PHONEDIR	?= /c/Users/ADMIN/iCloudDrive/Delta
+
+.PHONY: phone
+phone: $(ROM)
+	@mkdir -p "$(PHONEDIR)"
+	cp $(ROM) "$(PHONEDIR)/"
