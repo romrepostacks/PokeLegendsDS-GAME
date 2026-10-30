@@ -299,7 +299,7 @@ int main(int argc, char **argv)
     for (int y = 0; y < SALTMERE_H; y++)
         for (int x = 0; x < SALTMERE_W; x++)
             if (saltmere_map[y][x] == 'P')
-                player = { x, y, DOWN, 0, 0, 0 };
+                player = { x, y, DOWN, 0, 0 };
     player_pos(&cam_x, &cam_z);
 
     save_init(argc, argv);
