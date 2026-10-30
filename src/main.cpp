@@ -183,11 +183,10 @@ static bool walkable(int tx, int ty)
 
 static void player_update(u32 held)
 {
-    if (player.step > 0)
-    {
-        player.step--;
+    // Finish the current step. When it ends, a held direction starts the next step on
+    // the same frame, so walking doesn't pause for a frame on every tile.
+    if (player.step > 0 && --player.step > 0)
         return;
-    }
 
     int dir = -1;
     if (held & KEY_DOWN)
@@ -293,6 +292,7 @@ int main(int argc, char **argv)
 
     NE_Init3D();
     NE_SetFov(50);
+    NE_AntialiasEnable(true); // smooth polygon edges
     NE_ClearColorSet(RGB15(4, 7, 14), 31, 63); // deep navy sea and sky
 
     // Bottom screen console on VRAM H, so it can't collide with Nitro Engine's
@@ -384,8 +384,9 @@ int main(int argc, char **argv)
         player_update(held);
         float px, pz;
         player_pos(&px, &pz);
-        cam_x += (px - cam_x) * 0.2f;
-        cam_z += (pz - cam_z) * 0.2f;
+        // Locked to the player like Black 2; easing behind it made the walk look jerky.
+        cam_x = px;
+        cam_z = pz;
 
         if ((down & KEY_A) || (selftest > 0 && --selftest == 0))
         {

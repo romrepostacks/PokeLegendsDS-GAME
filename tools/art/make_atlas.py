@@ -27,9 +27,9 @@ def put(cell, x, y, c):
 
 
 def fill(cell, shades, weights=None):
-    for y in range(C):
-        for x in range(C):
-            put(cell, x, y, rng.choices(shades, weights)[0])
+    """Flat base colour. No per-pixel noise: with no mipmaps on the DS, noise shimmers
+    ("scratchy") as soon as the camera moves, so detail comes from large shapes only."""
+    rect(cell, 0, 0, C - 1, C - 1, shades[0])
 
 
 def rect(cell, x0, y0, x1, y1, c):
@@ -44,7 +44,7 @@ def shade(c, k):
 
 # 0: plaza cobbles, staggered rows of rounded stones with dark joints.
 STONE = (200, 208, 220)
-JOINT = (120, 128, 148)
+JOINT = (172, 180, 196)
 fill(0, [STONE, shade(STONE, 0.95), shade(STONE, 1.04)])
 for row in range(4):
     y0 = row * 8
@@ -57,19 +57,19 @@ for row in range(4):
 for y in range(C):
     for x in range(C):
         c = img.getpixel((x, y))
-        put(1, x, y, (236, 242, 250) if rng.random() < 0.55 else c)
+        stone = (x + (4 if (y // 8) % 2 else 0)) // 8 + y // 8
+        put(1, x, y, (236, 242, 250) if stone % 3 else c)  # snow on two stones in three
 
 # 2: snow drift
 fill(2, [(240, 244, 250), (228, 236, 246), (250, 252, 255)], [5, 3, 2])
-for _ in range(10):
-    x, y = rng.randrange(C), rng.randrange(C)
-    put(2, x, y, (200, 214, 232))
+rect(2, 4, 20, 13, 21, (226, 234, 246))  # soft drift shadows
+rect(2, 18, 9, 27, 10, (226, 234, 246))
 
 # 3: dock planks, running across the tile, with nails
 WOOD = (150, 108, 72)
 fill(3, [WOOD, shade(WOOD, 0.92), shade(WOOD, 1.06)])
 for y0 in range(0, C, 8):
-    rect(3, 0, y0, C - 1, y0, (88, 60, 40))
+    rect(3, 0, y0, C - 1, y0, (120, 86, 58))
     for x in (3, 28):
         put(3, x, y0 + 4, (60, 52, 50))
 
@@ -78,7 +78,7 @@ fill(4, [(52, 100, 150), (46, 92, 140), (58, 110, 160)], [4, 3, 2])
 for y in range(2, C, 6):
     x0 = rng.randrange(C)
     for x in range(x0, x0 + 6):
-        put(4, x % C, y, (120, 170, 210))
+        put(4, x % C, y, (76, 126, 176))
 
 # 5: plain plaster wall (white, so vertex colours tint it)
 PLASTER = (236, 236, 236)
@@ -110,10 +110,9 @@ rect(7, 7, 4, 24, 5, (246, 250, 255))             # snow on the canopy
 
 # 8: snowy roof slope, eave at the bottom of the cell
 fill(8, [(242, 246, 252), (226, 234, 246)], [3, 1])
-for y in range(C - 8, C - 3):
-    for x in range(C):
-        if rng.random() < (y - (C - 9)) / 6:
-            put(8, x, y, (64, 72, 96))            # slate showing under the snow
+for x in range(C):
+    edge = C - 6 - (1 if (x // 4) % 2 else 0)     # scalloped snow edge over the slate
+    rect(8, x, edge, x, C - 4, (64, 72, 96))
 rect(8, 0, C - 3, C - 1, C - 1, (44, 48, 70))     # eave
 
 # 9: icicles hanging under the eaves (upper wall band)
@@ -126,7 +125,7 @@ for x in range(1, C, 3):
 for y in range(C):
     band = (210, 60, 52) if (y // 8) % 2 == 0 else (240, 240, 244)
     for x in range(C):
-        put(10, x, y, shade(band, 0.95 if rng.random() < 0.2 else 1.0))
+        put(10, x, y, band)
 
 # 11: lighthouse lamp room, glass with frames and a warm light
 fill(11, [(255, 230, 140), (250, 214, 110)])
@@ -147,15 +146,15 @@ for i in range(3, C - 3):
 # 13: dark wet wood (posts, dock sides)
 fill(13, [(84, 60, 44), (74, 52, 38), (94, 68, 50)])
 for y0 in range(0, C, 8):
-    rect(13, 0, y0, C - 1, y0, (50, 36, 28))
+    rect(13, 0, y0, C - 1, y0, (66, 48, 36))
 
 # 14: quay wall, large blocks of darker stone
 fill(14, [(130, 140, 158), (122, 132, 150)])
 for y0 in range(0, C, 10):
-    rect(14, 0, y0, C - 1, y0, (80, 88, 106))
+    rect(14, 0, y0, C - 1, y0, (104, 112, 130))
     off = 8 if (y0 // 10) % 2 else 0
     for x in range(off, C, 16):
-        rect(14, x, y0, x, min(C - 1, y0 + 9), (80, 88, 106))
+        rect(14, x, y0, x, min(C - 1, y0 + 9), (104, 112, 130))
 
 # 15: fountain water, frozen at the edges
 fill(15, [(150, 200, 236), (170, 214, 244), (130, 186, 228)], [4, 2, 1])
