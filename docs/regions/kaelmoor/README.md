@@ -81,7 +81,7 @@ Black 2's look, made from scratch: no ripped or traced Black 2 assets.
 
 - **Overworld:** low-poly 3D towns and routes on the DS 3D hardware, modelled in Blender. A tilted camera that swings for big moments (bridges, the Saltmere skyline, the crater descent).
 - **Characters:** small 2D sprites (32x32) with 4-direction walk cycles.
-- **Battles:** 3D-style backdrops per area, official Pokémon front and back sprites, HP bars on the top screen and a touch command menu on the bottom.
+- **Battles:** Legends of 9's whole-party battles: your whole party against a wild pack or a trainer's team, every Pokémon commanded, then everyone acting in speed order. Black 2 presentation: 3D-style backdrops per area, official front and back sprites with HP bars on the top screen, and a touch command menu on the bottom that steps through each of your Pokémon.
 - **UI:** clean, flat Black 2 style menus and text boxes across both screens.
 - **Kaelmoor palette:** pale blues and whites by day, deep navy and aurora greens at night, warm orange only in Emberhalt.
 
@@ -142,12 +142,52 @@ sea to where the white and black dragons fell. That's the hook for region 2, wit
 ## Pokémon
 
 Official sprites. The wild roster leans cold: tundra, marsh, mines, hot springs and sea ice, from all generations.
-Starters, picked in the prologue: one Grass, one Fire, one Water, chosen for how they handle the cold. The final
-roster gets its own file once the battle style is settled.
+
+**Starters.** In the prologue, Hale offers every base starter from Gen 1 to Gen 9, all 27 of them, on a
+generation-by-generation picker on the touch screen:
+
+| Gen | Grass | Fire | Water |
+|-----|-------|------|-------|
+| 1 | Bulbasaur | Charmander | Squirtle |
+| 2 | Chikorita | Cyndaquil | Totodile |
+| 3 | Treecko | Torchic | Mudkip |
+| 4 | Turtwig | Chimchar | Piplup |
+| 5 | Snivy | Tepig | Oshawott |
+| 6 | Chespin | Fennekin | Froakie |
+| 7 | Rowlet | Litten | Popplio |
+| 8 | Grookey | Scorbunny | Sobble |
+| 9 | Sprigatito | Fuecoco | Quaxly |
+
+Ivo then takes the starter of the same generation whose type beats yours, as rivals did in the old games.
+
+## Placeholder names
+
+Every name below is a placeholder. Keep, rename or cut any of them.
+
+| Kind | Names |
+|------|-------|
+| Region and landmarks | Kaelmoor, Hollow Heart (crater), Aurora Spire (League), Titan's Vault (Regigigas), icebreaker *Northwind* |
+| Towns | Port Saltmere, Duneholt, Cragspire, Hoarfrost, Ironwake, Emberhalt, Wraithmoor, Rimeholm |
+| Caves | Saltmere Undercroft, Cragspire Mines, Ironwake Drill Site, Victory Glacier |
+| Gym leaders | Nerissa (Water), Bram (Ground), Tova (Rock), Elske (Ice), Kade (Steel), Rurik (Fighting), Isolde (Ghost), Asger (Dragon) |
+| Story cast | Ivo (rival), Prof. Halvard, Dr. Sefa Varn (Thaw boss), Brann and Mira (admins) |
+| Villain team | Team Thaw |
+| Expedition gear | Ice Pick, Snowshoes, Grapple, Raft, Heat Lamp |
+| Still unnamed | The Elite Four, and the route names |
+
+Returning names from Legends of 9 (Hawthorn, Hale, Kai, Wren, Rimefall Town) stay as they are.
+
+## Title options
+
+All riff on *Poké Legends: Lands of Nine*:
+
+- **Poké Legends: Beyond the Nine** (recommended): says "continuation" and leaves room for region 2.
+- Poké Legends: Lands of Frost
+- Poké Legends: The Tenth Land
+- Poké Legends: Nine and Beyond
+- Poké Legends: Kaelmoor
 
 ## Open questions
 
-- Battle style: Black 2 style singles (and doubles), or Legends of 9's whole-party battles?
-- Starter trio: which three?
-- Game title: keep "PokeLegends of Nine DS", or add a subtitle?
-- Keep or rename any placeholder names?
+- Game title: pick one above, or suggest another.
+- Placeholder names: keep or rename any in the table above.
