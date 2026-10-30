@@ -43,6 +43,16 @@ The crater (the Hollow Heart) sits in the middle and opens only at the end.
 Routes between each pair (about 10), plus caves: **Saltmere Undercroft** (sewers and old tunnels under the hub),
 **Cragspire Mines**, **Ironwake Drill Site**, and **Victory Glacier** before the League.
 
+## Art direction
+
+Black 2's look, made from scratch: no ripped or traced Black 2 assets.
+
+- **Overworld:** low-poly 3D towns and routes on the DS 3D hardware, modelled in Blender. A tilted camera that swings for big moments (bridges, the Saltmere skyline, the crater descent).
+- **Characters:** small 2D sprites (32x32) with 4-direction walk cycles.
+- **Battles:** 3D-style backdrops per area, official Pokémon front and back sprites, HP bars on the top screen and a touch command menu on the bottom.
+- **UI:** clean, flat Black 2 style menus and text boxes across both screens.
+- **Kaelmoor palette:** pale blues and whites by day, deep navy and aurora greens at night, warm orange only in Emberhalt.
+
 ## Signature mechanic: the thaw cycle
 
 The real-time clock drives temperature. **By day**, lakes and inlets thaw: you Surf across them, and water
