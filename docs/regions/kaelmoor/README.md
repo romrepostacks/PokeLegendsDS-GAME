@@ -82,6 +82,8 @@ Black 2's look, made from scratch: no ripped or traced Black 2 assets.
 - **Overworld:** low-poly 3D towns and routes on the DS 3D hardware, modelled in Blender. A tilted camera that swings for big moments (bridges, the Saltmere skyline, the crater descent).
 - **Characters:** small 2D sprites (32x32) with 4-direction walk cycles.
 - **Battles:** Legends of 9's whole-party battles: your whole party against a wild pack or a trainer's team, every Pokémon commanded, then everyone acting in speed order. Black 2 presentation: 3D-style backdrops per area, official front and back sprites with HP bars on the top screen, and a touch command menu on the bottom that steps through each of your Pokémon.
+  - Rules carried from Legends of 9: party of up to 10, and your whole living party fights. Wild packs are 1 to half your living party (max 4). Route trainers field 2–5, gym juniors 3–4, rivals and leaders 6.
+  - DS layout: the top screen shows the field. The bottom screen lists every Pokémon's HP and lets you tap targets. Battle sprites are 96x96 at up to 6 a side and shrink to 64x64 or 48x48 above that (Legends of 9's "dense" mode).
 - **UI:** clean, flat Black 2 style menus and text boxes across both screens.
 - **Kaelmoor palette:** pale blues and whites by day, deep navy and aurora greens at night, warm orange only in Emberhalt.
 
