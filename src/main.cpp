@@ -150,7 +150,7 @@ static const float TILE = 0.25f;
 // for now; it becomes a key item later). Also the sprite sheet's row blocks, see
 // tools/art/make_player.py.
 enum Mode { WALK, RUN, BIKE };
-static const int STEP_FRAMES[] = { 12, 6, 4 };
+static const int STEP_FRAMES[] = { 16, 8, 4 }; // Black 2 timing: run is 2x walk, bike 4x
 
 enum Dir { DOWN, UP, LEFT, RIGHT };
 static const int DX[] = { 0, 0, -1, 1 };

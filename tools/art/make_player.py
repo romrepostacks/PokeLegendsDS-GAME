@@ -218,17 +218,21 @@ def run_down(step, back=False):
 def run_left(step):
     f = Frame()
     dy = 0 if step == 0 else 1
-    if step == 0:  # passing: one leg under the body, the other tucked up behind
-        f.rect(14, 23, 16, 28, "N")
-        f.rect(13, 29, 16, 30, "B")
-        f.rect(17, 22, 19, 25, "N")
-        f.rect(18, 25, 21, 26, "B")
+    if step == 0:  # passing: one leg under the body, the other bent just behind it
+        f.rect(16, 23, 18, 26, "N")
+        f.rect(17, 26, 19, 27, "N")
+        f.rect(17, 28, 20, 28, "B")
+        f.rect(13, 23, 15, 28, "N")
+        f.rect(12, 29, 15, 30, "B")
     else:
-        # Full stride: front foot well ahead, back foot kicked up behind.
-        f.rect(19, 23 + dy, 21, 25 + dy, "N")
-        f.rect(21, 23 + dy, 24, 25 + dy, "B")
-        f.rect(11, 23 + dy, 13, 28, "N")
-        f.rect(9, 29, 13, 30, "B")
+        # Stride: legs open at an angle, the back foot just off the ground. Kept well
+        # short of horizontal so it reads as a jog, not a kick.
+        f.rect(16, 23 + dy, 18, 25 + dy, "N")   # back thigh
+        f.rect(17, 26, 19, 27, "N")             # back shin, angled down
+        f.rect(18, 28, 21, 28, "B")
+        f.rect(12, 23 + dy, 14, 27, "N")        # front leg reaching forward
+        f.rect(11, 28, 13, 28, "N")
+        f.rect(10, 29, 13, 30, "B")
     body_side(f, -1, dy)  # leaning into the run
     if step == 0:
         arm_side(f, 14, 15 + dy, 21 + dy)
