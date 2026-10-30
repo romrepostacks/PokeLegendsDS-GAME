@@ -222,8 +222,8 @@ def walk_down(q, back=False):
 def walk_left(q):
     f = Frame()
     limb_arm(f, 16, 16, 16 - round(q * 3), 20, "r", outline=False)   # far arm, behind
-    limb_leg(f, 15, 15 + round(q * 3), 23, 0, "p")                   # far leg
-    limb_leg(f, 15, 15 - round(q * 3), 23, 0, "N")                   # near leg
+    limb_leg(f, 14, 14 + round(q * 3), 23, 0, "p")                   # far leg
+    limb_leg(f, 14, 14 - round(q * 3), 23, 0, "N")                   # near leg
     body_side(f)
     limb_arm(f, 14, 16, 14 + round(q * 3), 20, "r")                  # near arm
     head_side(f)
@@ -245,10 +245,10 @@ def run_down(q, back=False):
 def run_left(q):
     f = Frame()
     dy = -1 if abs(q) == 1 else 0   # up off the ground at full stride
-    reach = round(q * 5)
+    reach = round(q * 4)
     limb_arm(f, 15, 16 + dy, 15 - round(q * 3), 19 + dy, "r", outline=False)
-    limb_leg(f, 15, 15 + reach, 23 + dy, 2 if q > 0 else 0, "p")     # the trailing foot lifts
-    limb_leg(f, 15, 15 - reach, 23 + dy, 2 if q < 0 else 0, "N")
+    limb_leg(f, 13, 13 + reach, 22 + dy, 2 if q > 0 else 0, "p")     # the trailing foot lifts
+    limb_leg(f, 13, 13 - reach, 22 + dy, 2 if q < 0 else 0, "N")
     body_side(f, -1, dy)
     limb_arm(f, 14, 16 + dy, 14 + round(q * 3), 19 + dy, "r")        # bent, pumping
     head_side(f, -2, dy)                                             # leaning into the run
