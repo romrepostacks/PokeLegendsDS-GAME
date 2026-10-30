@@ -242,6 +242,11 @@ static void draw_player(void)
     else
         frame = player.step > STEP_FRAMES[player.mode] / 2 ? player.foot : 0;
     int u0 = frame * 32, v0 = (player.mode * 4 + player.dir) * 32;
+#ifdef TEST_POSE
+    // Test builds only: show one sprite frame, for screenshots.
+    u0 = TEST_POSE * 32;
+    v0 = (TEST_MODE * 4 + TEST_DIR) * 32;
+#endif
 
     NE_ViewPush();
     NE_ViewMove(px, 0, pz);
@@ -347,6 +352,9 @@ int main(int argc, char **argv)
         for (int x = 0; x < SALTMERE_W; x++)
             if (saltmere_map[y][x] == 'P')
                 player = { x, y, DOWN, 0, 0 };
+#ifdef TEST_BIKE
+    player.bike = true;
+#endif
 #ifdef SHOT_X
     // Test builds only: start somewhere else, for screenshots of each part of town.
     player.tx = SHOT_X;
@@ -392,11 +400,11 @@ int main(int argc, char **argv)
         u32 down = keysDown();
 
         u32 held = keysHeld();
-#ifdef WALK_SELFTEST
-        // Test builds only: hold Down for 3 seconds, which walks into the water's edge.
+#ifdef TEST_KEYS
+        // Test builds only: hold these keys for 36 frames, then read the tile to check speed.
         static int frame;
-        if (frame++ < 180)
-            held |= KEY_DOWN;
+        if (frame++ < 36)
+            held |= TEST_KEYS;
 #endif
         player_update(held, down);
         float px, pz;
