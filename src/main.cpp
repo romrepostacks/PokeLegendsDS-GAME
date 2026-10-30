@@ -17,7 +17,7 @@ int main(int argc, char **argv)
     consoleInit(&bottomScreen, 3, BgType_Text4bpp, BgSize_T_256x256, 31, 0, false, true);
 
     consoleSelect(&topScreen);
-    printf("\x1b[11;5HPokeLegendsofNine DS");
+    printf("\x1b[10;10HPoke Legends\x1b[12;8HBeyond the Nine");
 
     consoleSelect(&bottomScreen);
     printf("\x1b[11;10HPress START");
