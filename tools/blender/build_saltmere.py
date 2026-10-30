@@ -6,7 +6,7 @@
 # Every face maps onto one 32x32 cell of art/textures/saltmere.png (tools/art/make_atlas.py),
 # and its vertex colour tints that cell. One tile = 1 Blender unit. Blender X = column,
 # -Y = row (north is +Y), Z = height. The model is centred on the origin, because DS
-# vertices only reach +-8 units even after obj2dl's scaling.
+# vertices only reach +-8 units even after obj2dl's scaling (0.25 per tile, so up to 64 tiles).
 
 import math
 import re
@@ -86,68 +86,169 @@ def box(c, r, z0, z1, cell_side, cell_top, inset, tint=WHITE):
 
 
 def walkable(t):
-    return t in (".", ",", "P")
+    return t in (".", ",", ":", "r", "P")
 
 
-def house(c, r):
-    tint = TINTS[(c // 3 + r) % len(TINTS)]
-    x0, x1, y0, y1 = bounds(c, r)
-    h = zlib.crc32(f"{c},{r}".encode())
-    # Walls, only where they face open ground (the rest is hidden by other houses).
-    for dc, dr, a, b in ((0, 1, (x0, y0), (x1, y0)), (0, -1, (x1, y1), (x0, y1)),
-                         (-1, 0, (x0, y1), (x0, y0)), (1, 0, (x1, y0), (x1, y1))):
-        n = tile(r + dr, c + dc)
-        if n is None or n == "#":
-            continue
-        ground_cell = DOOR if (dr == 1 and h % 4 == 0) else WINDOW
-        side(*a, *b, 0, FLOOR, ground_cell if walkable(n) else WALL, tint)
-        side(*a, *b, FLOOR, ROOF_Z, EAVES, tint)
-    # Pitched roof: the ridge runs along the row of houses, gables close the ends.
-    ew = tile(r, c - 1) == "#" or tile(r, c + 1) == "#"
-    top = ROOF_Z + RIDGE
-    o = 0.12  # overhang
-    if ew:
+def blocks(t):
+    """Connected blocks of one tile type, as (r0, c0, r1, c1) bounding boxes."""
+    seen, out = set(), []
+    for r in range(H):
+        for c in range(W):
+            if rows[r][c] != t or (r, c) in seen:
+                continue
+            todo, cells = [(r, c)], []
+            seen.add((r, c))
+            while todo:
+                rr, cc = todo.pop()
+                cells.append((rr, cc))
+                for nr, nc in ((rr + 1, cc), (rr - 1, cc), (rr, cc + 1), (rr, cc - 1)):
+                    if tile(nr, nc) == t and (nr, nc) not in seen:
+                        seen.add((nr, nc))
+                        todo.append((nr, nc))
+            rs, cs = [x[0] for x in cells], [x[1] for x in cells]
+            out.append((min(rs), min(cs), max(rs), max(cs)))
+    return out
+
+
+def building(r0, c0, r1, c1, i):
+    """One building over a rectangle of '#' tiles: walls, a door, one pitched roof."""
+    w, d = c1 - c0 + 1, r1 - r0 + 1
+    big = w * d >= 20
+    tint = TINTS[i % len(TINTS)]
+    wall_top = ROOF_Z + (FLOOR if big else 0)
+    x0, x1, y0, y1 = c0, c1 + 1, -r1 - 1, -r0  # y0 is the south face
+    door_c = (c0 + c1) // 2
+    # South and north faces, one panel per tile; doors face south onto open ground.
+    for c in range(c0, c1 + 1):
+        for r, ya, yb, xa, xb in ((r1 + 1, y0, y0, c, c + 1), (r0 - 1, y1, y1, c + 1, c)):
+            n = tile(r, c)
+            if n is None or n == "#":
+                continue
+            ground_cell = DOOR if (r == r1 + 1 and c == door_c and walkable(n)) else WINDOW
+            side(xa, ya, xb, yb, 0, FLOOR, ground_cell, tint)
+            for z in range(1, int(wall_top) - 1):
+                side(xa, ya, xb, yb, z, z + 1, WINDOW, tint)
+            side(xa, ya, xb, yb, wall_top - 1, wall_top, EAVES, tint)
+    for r in range(r0, r1 + 1):
+        for c, xa, ya, yb in ((c0 - 1, x0, -r, -r - 1), (c1 + 1, x1, -r - 1, -r)):
+            n = tile(r, c)
+            if n is None or n == "#":
+                continue
+            side(xa, ya, xa, yb, 0, FLOOR, WINDOW, tint)
+            for z in range(1, int(wall_top) - 1):
+                side(xa, ya, xa, yb, z, z + 1, WINDOW, tint)
+            side(xa, ya, xa, yb, wall_top - 1, wall_top, EAVES, tint)
+    # Roof: the ridge runs along the long side, gables close the short ends.
+    o = 0.15
+    top = wall_top + RIDGE * (1.3 if big else 1.0)
+    if w >= d:
         ym = (y0 + y1) / 2
-        poly([(x0, y0 - o, ROOF_Z), (x1, y0 - o, ROOF_Z), (x1, ym, top), (x0, ym, top)], ROOF)
-        poly([(x1, y1 + o, ROOF_Z), (x0, y1 + o, ROOF_Z), (x0, ym, top), (x1, ym, top)], ROOF)
-        for x, n in ((x0, tile(r, c - 1)), (x1, tile(r, c + 1))):
-            if n != "#":
-                poly([(x, y0, ROOF_Z), (x, y1, ROOF_Z), (x, ym, top)], WALL, tint,
-                     [(0, 0), (1, 0), (0.5, 1)])
+        poly([(x0 - o, y0 - o, wall_top), (x1 + o, y0 - o, wall_top), (x1 + o, ym, top), (x0 - o, ym, top)], ROOF)
+        poly([(x1 + o, y1 + o, wall_top), (x0 - o, y1 + o, wall_top), (x0 - o, ym, top), (x1 + o, ym, top)], ROOF)
+        for x in (x0, x1):
+            poly([(x, y0, wall_top), (x, y1, wall_top), (x, ym, top)], WALL, tint, [(0, 0), (1, 0), (0.5, 1)])
     else:
         xm = (x0 + x1) / 2
-        poly([(x0 - o, y1, ROOF_Z), (x0 - o, y0, ROOF_Z), (xm, y0, top), (xm, y1, top)], ROOF)
-        poly([(x1 + o, y0, ROOF_Z), (x1 + o, y1, ROOF_Z), (xm, y1, top), (xm, y0, top)], ROOF)
-        for y, n in ((y0, tile(r + 1, c)), (y1, tile(r - 1, c))):
-            if n != "#":
-                poly([(x0, y, ROOF_Z), (x1, y, ROOF_Z), (xm, y, top)], WALL, tint,
-                     [(0, 0), (1, 0), (0.5, 1)])
+        poly([(x0 - o, y1 + o, wall_top), (x0 - o, y0 - o, wall_top), (xm, y0 - o, top), (xm, y1 + o, top)], ROOF)
+        poly([(x1 + o, y0 - o, wall_top), (x1 + o, y1 + o, wall_top), (xm, y1 + o, top), (xm, y0 - o, top)], ROOF)
+        for y in (y0, y1):
+            poly([(x0, y, wall_top), (x1, y, wall_top), (xm, y, top)], WALL, tint, [(0, 0), (1, 0), (0.5, 1)])
+
+
+def ring(cx, cy, rad, a):
+    return cx + rad * math.cos(a), cy + rad * math.sin(a)
+
+
+def band(cx, cy, z0, z1, rad0, rad1, cell, tint=WHITE, sides=8):
+    """A ring of quads from radius rad0 at z0 to rad1 at z1 (a cylinder, cone or bowl)."""
+    for i in range(sides):
+        a0, a1 = 2 * math.pi * i / sides, 2 * math.pi * (i + 1) / sides
+        (ax, ay), (bx, by) = ring(cx, cy, rad0, a0), ring(cx, cy, rad0, a1)
+        (qx, qy), (dx, dy) = ring(cx, cy, rad1, a1), ring(cx, cy, rad1, a0)
+        poly([(ax, ay, z0), (bx, by, z0), (qx, qy, z1), (dx, dy, z1)], cell, tint)
+
+
+def disc(cx, cy, z, rad, cell, sides=8):
+    for i in range(sides):
+        a0, a1 = 2 * math.pi * i / sides, 2 * math.pi * (i + 1) / sides
+        poly([(cx, cy, z), ring(cx, cy, rad, a0) + (z,), ring(cx, cy, rad, a1) + (z,)], cell, WHITE,
+             [(0.5, 0.5), (0.5 + 0.5 * math.cos(a0), 0.5 + 0.5 * math.sin(a0)),
+              (0.5 + 0.5 * math.cos(a1), 0.5 + 0.5 * math.sin(a1))])
+
+
+def cone(cx, cy, z0, z1, rad, cell, tint=WHITE, sides=8):
+    for i in range(sides):
+        a0, a1 = 2 * math.pi * i / sides, 2 * math.pi * (i + 1) / sides
+        poly([ring(cx, cy, rad, a0) + (z0,), ring(cx, cy, rad, a1) + (z0,), (cx, cy, z1)], cell, tint,
+             [(0, 0), (1, 0), (0.5, 1)])
+
+
+def fountain(r0, c0, r1, c1):
+    """Tiered fountain, frozen solid: stone basin, column, upper bowl, ice spray."""
+    cx, cy = (c0 + c1 + 1) / 2, -(r0 + r1 + 1) / 2
+    R = (c1 - c0 + 1) / 2 - 0.1
+    stone = (0.92, 0.94, 1.0)
+    band(cx, cy, 0.0, 0.45, R, R, QUAY, stone)            # basin wall
+    band(cx, cy, 0.45, 0.45, R, R - 0.22, QUAY, stone)    # rim
+    disc(cx, cy, 0.35, R - 0.22, ICE)                      # frozen pool
+    band(cx, cy, 0.35, 1.5, 0.22, 0.18, QUAY, stone)      # column
+    band(cx, cy, 1.2, 1.55, 0.25, 0.75, QUAY, stone)      # upper bowl
+    disc(cx, cy, 1.55, 0.75, ICE)
+    for i in range(8):                                     # icicles off the bowl
+        a = 2 * math.pi * (i + 0.5) / 8
+        (ax, ay), (bx, by) = ring(cx, cy, 0.76, a - 0.12), ring(cx, cy, 0.76, a + 0.12)
+        mx, my = ring(cx, cy, 0.78, a)
+        poly([(ax, ay, 1.55), (bx, by, 1.55), (mx, my, 0.95)], ICE, WHITE, [(0, 1), (1, 1), (0.5, 0)])
+    band(cx, cy, 1.55, 2.0, 0.3, 0.12, ICE)               # frozen spray
+    cone(cx, cy, 2.0, 2.45, 0.12, ICE)
 
 
 def lighthouse(c, r):
-    ground(c, r, 0.0, PLANK)
+    ground(c, r, 0.0, QUAY)
     cx, cy = c + 0.5, -r - 0.5
-    sides = 8
+    band(cx, cy, 0.0, 0.35, 0.5, 0.5, QUAY)               # stone plinth
+    poly([(cx - 0.5, cy - 0.5, 0.35), (cx + 0.5, cy - 0.5, 0.35), (cx + 0.5, cy + 0.5, 0.35),
+          (cx - 0.5, cy + 0.5, 0.35)], SNOW)
+    band(cx, cy, 0.35, 1.8, 0.44, 0.37, STRIPES)
+    band(cx, cy, 1.8, 3.2, 0.37, 0.30, STRIPES)
+    band(cx, cy, 3.2, 3.25, 0.30, 0.42, DARKWOOD)          # gallery
+    band(cx, cy, 3.25, 3.8, 0.32, 0.32, LAMP)
+    cone(cx, cy, 3.8, 4.35, 0.42, ROOF, (0.9, 0.5, 0.5))
 
-    def ring(rad, a):
-        return cx + rad * math.cos(a), cy + rad * math.sin(a)
 
-    def band(z0, z1, rad0, rad1, cell):
-        for i in range(sides):
-            a0, a1 = 2 * math.pi * i / sides, 2 * math.pi * (i + 1) / sides
-            (ax, ay), (bx, by) = ring(rad0, a0), ring(rad0, a1)
-            (cx1, cy1), (dx, dy) = ring(rad1, a1), ring(rad1, a0)
-            poly([(ax, ay, z0), (bx, by, z0), (cx1, cy1, z1), (dx, dy, z1)], cell)
+def pine(c, r):
+    """Four-sided pine with snow on top. Only trees at the edge of a wood get one; the
+    ones behind them would be hidden, so they stay bare snow (saves polygons)."""
+    if all(tile(r + dr, c + dc) in ("T", None) for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+        return
+    h = zlib.crc32(f"t{c},{r}".encode())
+    cx, cy = c + 0.5 + (h % 7 - 3) * 0.03, -r - 0.5 + (h // 7 % 7 - 3) * 0.03
+    s = 0.9 + (h % 5) * 0.06
+    green = (0.30, 0.52, 0.42)
+    for z0, rad in ((0.15, 0.6), (0.75, 0.45), (1.3, 0.32)):
+        cone(cx, cy, z0 * s, (z0 + 0.75) * s, rad * s, SNOW, green, 4)
+    cone(cx, cy, 1.8 * s, 2.15 * s, 0.12 * s, SNOW, WHITE, 4)  # snow cap
 
-    band(0.0, 1.2, 0.42, 0.36, STRIPES)
-    band(1.2, 2.4, 0.36, 0.30, STRIPES)
-    band(2.4, 2.9, 0.34, 0.34, LAMP)
-    for i in range(sides):  # cone roof
-        a0, a1 = 2 * math.pi * i / sides, 2 * math.pi * (i + 1) / sides
-        (ax, ay), (bx, by) = ring(0.42, a0), ring(0.42, a1)
-        poly([(ax, ay, 2.9), (bx, by, 2.9), (cx, cy, 3.4)], ROOF, (0.9, 0.5, 0.5),
-             [(0, 0), (1, 0), (0.5, 1)])
 
+def boulder(c, r):
+    h = zlib.crc32(f"b{c},{r}".encode())
+    z = 0.5 + (h % 4) * 0.15
+    box(c, r, WATER_Z if tile(r, c) == "R" and r >= 19 else 0.0, z, QUAY, SNOW, 0.04 + (h % 3) * 0.04,
+        (0.85, 0.87, 0.92))
+
+
+def lamp(c, r):
+    cx, cy = c + 0.5, -r - 0.5
+    iron = (0.35, 0.38, 0.45)
+    band(cx, cy, 0.0, 1.3, 0.06, 0.05, DARKWOOD, iron, 4)
+    band(cx, cy, 1.3, 1.55, 0.13, 0.13, LAMP, WHITE, 4)
+    cone(cx, cy, 1.55, 1.75, 0.17, DARKWOOD, iron, 4)
+
+
+for i, b in enumerate(blocks("#")):
+    building(*b, i)
+for b in blocks("f"):
+    fountain(*b)
 
 for r, row in enumerate(rows):
     for c, t in enumerate(row):
@@ -155,34 +256,40 @@ for r, row in enumerate(rows):
             ground(c, r, WATER_Z, WATER)
             continue
         if t == "#":
-            house(c, r)
             continue
         if t == "L":
             lighthouse(c, r)
             continue
-
-        dock = t == "," or r >= 10
+        dock = t == ","
+        rock = t in "rR" or (t == "L")
+        near = [tile(r + dr, c + dc) for dr in (-1, 0, 1) for dc in (-1, 0, 1)]
         if dock:
             ground(c, r, 0.0, PLANK)
+        elif rock:
+            ground(c, r, 0.0, QUAY, (0.9, 0.92, 0.98))
+        elif t in ":T" or "T" in near:
+            ground(c, r, 0.0, SNOW)
+        elif "#" in near:
+            ground(c, r, 0.0, DUSTED)
         else:
-            # Snow piles up against the houses and the edge of the map.
-            near = [tile(r + dr, c + dc) for dr in (-1, 0, 1) for dc in (-1, 0, 1)]
-            if "#" in near or None in near:
-                ground(c, r, 0.0, SNOW if "#" in near[:3] else DUSTED)
-            else:
-                ground(c, r, 0.0, COBBLE)
+            ground(c, r, 0.0, COBBLE)
 
         if t == "c":
             box(c, r, 0.0, 0.7, CRATE, CRATE, 0.12)
-        elif t == "f":
-            box(c, r, 0.0, 0.35, QUAY, ICE, 0.04)
+        elif t == "T":
+            pine(c, r)
+        elif t == "R":
+            boulder(c, r)
+        elif t == "i":
+            lamp(c, r)
 
-        # Edges over the water: quay wall for the plaza, dark boards and posts for docks.
+        # Edges over the water: quay wall for land, dark boards and posts for docks.
         x0, x1, y0, y1 = bounds(c, r)
         edge = DARKWOOD if dock else QUAY
         for n, a, b in ((tile(r + 1, c), (x0, y0), (x1, y0)),
                         (tile(r, c - 1), (x0, y1), (x0, y0)),
-                        (tile(r, c + 1), (x1, y0), (x1, y1))):
+                        (tile(r, c + 1), (x1, y0), (x1, y1)),
+                        (tile(r - 1, c), (x1, y1), (x0, y1))):
             if n == "~":
                 side(*a, *b, WATER_Z, 0.0, edge)
         if dock:

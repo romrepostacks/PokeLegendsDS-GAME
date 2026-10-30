@@ -173,7 +173,7 @@ static bool walkable(int tx, int ty)
     if (tx < 0 || ty < 0 || tx >= SALTMERE_W || ty >= SALTMERE_H)
         return false;
     char t = saltmere_map[ty][tx];
-    return t == '.' || t == ',' || t == 'P';
+    return t == '.' || t == ',' || t == ':' || t == 'r' || t == 'P';
 }
 
 static void player_update(u32 held)
