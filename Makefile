@@ -19,6 +19,10 @@ LIBDIRS		:= $(BLOCKSDSEXT)/nitro-engine
 
 include $(BLOCKSDS)/sys/default_makefiles/rom_arm9/Makefile
 
+# Our own game code. With the homebrew default (####), melonDS and Delta give the ROM no
+# save chip, so saves have nowhere to go.
+NDSTOOL_ARGS	+= -g B9NE
+
 # 3D models: Blender builds the map model, obj2dl turns it into a DS display list.
 # The .bin files are committed, so a plain `make` doesn't need Blender.
 BLENDER		?= /c/Program\ Files/Blender\ Foundation/Blender\ 5.2/blender.exe

@@ -2,3 +2,4 @@ build/
 *.nds
 *.elf
 node_modules/
+*.sav

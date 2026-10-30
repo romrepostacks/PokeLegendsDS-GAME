@@ -47,8 +47,53 @@ static void save_init(int argc, char **argv)
 
     sysSetCardOwner(true);
     cart_type = cardEepromGetType();
-    if (cart_type > 0)
-        backend = Backend::Cart;
+    // If detection finds nothing, assume the 64 KB EEPROM that melonDS gives unknown games.
+    if (cart_type <= 0)
+        cart_type = 2;
+    backend = Backend::Cart;
+}
+
+// One byte on the save chip's SPI bus. The last byte of a command goes out with HOLD
+// cleared, which ends the command. libnds' cardWriteEeprom() ends commands by turning
+// the bus off instead, and melonDS 1.1 (Delta's core) never commits writes ended that way.
+static u8 spi_byte(u8 value, bool last)
+{
+    REG_AUXSPICNT = CARD_ENABLE | CARD_SPI_ENABLE | (last ? 0 : CARD_SPI_HOLD) | CARD_SPI_BAUD_4MHz;
+    REG_AUXSPIDATA = value;
+    eepromWaitBusy();
+    return REG_AUXSPIDATA;
+}
+
+// Writes up to one page (32 bytes for EEPROM, 256 for FLASH) at a page-aligned address.
+static void cart_write(u32 address, const u8 *data, u32 length)
+{
+    spi_byte(SPI_EEPROM_WREN, true);
+
+    if (cart_type == 1)
+    {
+        spi_byte(SPI_EEPROM_PP | ((address & BIT(8)) >> 5), false);
+        spi_byte(address & 0xFF, false);
+    }
+    else
+    {
+        // FLASH (type 3) uses page write, which erases the page first.
+        spi_byte(cart_type == 3 ? SPI_EEPROM_PW : SPI_EEPROM_PP, false);
+        if (cart_type == 3)
+            spi_byte((address >> 16) & 0xFF, false);
+        spi_byte((address >> 8) & 0xFF, false);
+        spi_byte(address & 0xFF, false);
+    }
+    for (u32 i = 0; i < length; i++)
+        spi_byte(data[i], i == length - 1);
+
+    u8 status;
+    do
+    {
+        spi_byte(SPI_EEPROM_RDSR, false);
+        status = spi_byte(0, true);
+    } while (status & 1); // write in progress
+
+    REG_AUXSPICNT = CARD_SPI_HOLD | CARD_SPI_BAUD_4MHz;
 }
 
 static bool save_read(SaveData *data)
@@ -83,9 +128,7 @@ static bool save_write(SaveData *data)
     }
     if (backend == Backend::Cart)
     {
-        if (cart_type == 3) // FLASH must be erased before writing
-            cardEepromSectorErase(0);
-        cardWriteEeprom(0, (u8 *)data, sizeof(*data), cart_type);
+        cart_write(0, (const u8 *)data, sizeof(*data));
         SaveData check;
         cardReadEeprom(0, (u8 *)&check, sizeof(check), cart_type);
         return check.magic == data->magic && check.counter == data->counter;
@@ -266,10 +309,11 @@ int main(int argc, char **argv)
     printf("\x1b[23;1HA: add 1 and save");
 
 #ifdef SAVE_SELFTEST
-    // Test builds only (make DEFINES=-DSAVE_SELFTEST): act as if A was pressed at boot.
-    bool selftest = true;
+    // Test builds only (make DEFINES=-DSAVE_SELFTEST): act as if A was pressed 3 seconds
+    // after boot, like a player would.
+    int selftest = 180;
 #else
-    bool selftest = false;
+    int selftest = 0;
 #endif
 
     while (1)
@@ -293,9 +337,8 @@ int main(int argc, char **argv)
 
         printf("\x1b[6;1HTile: %2d,%2d  ", player.tx, player.ty);
 
-        if ((down & KEY_A) || selftest)
+        if ((down & KEY_A) || (selftest > 0 && --selftest == 0))
         {
-            selftest = false;
             data.counter++;
             bool ok = save_write(&data);
             printf("\x1b[20;1HCounter: %lu   ", (unsigned long)data.counter);
