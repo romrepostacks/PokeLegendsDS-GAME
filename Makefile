@@ -14,3 +14,11 @@ SOURCEDIRS	:= src
 INCLUDEDIRS	:= include
 
 include $(BLOCKSDS)/sys/default_makefiles/rom_arm9/Makefile
+
+# Send the ROM to the iPhone over PairDrop. Prints a pair code if the phone isn't paired.
+# node is the Windows install, which the MSYS2 shell doesn't have on PATH.
+NODE		?= /c/Program\ Files/nodejs/node.exe
+
+.PHONY: send
+send: $(ROM)
+	$(NODE) tools/send-to-phone.mjs $(ROM)
