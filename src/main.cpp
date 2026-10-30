@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 #include <NEMain.h>
 #include <fat.h>
@@ -141,7 +142,7 @@ static bool save_write(SaveData *data)
 }
 
 // ---------------------------------------------------------------------------
-// Overworld: Port Saltmere block-out with a tile-by-tile player.
+// Overworld: Port Saltmere with a tile-by-tile player.
 
 // The model is built at 1 tile = 0.25 units, centred on the map (see `make models`).
 static const float TILE = 0.25f;
@@ -160,7 +161,11 @@ struct Player
 };
 
 static NE_Camera *camera;
-static NE_Model *town;
+// The town is 8x8-tile chunks; see tools/art/pack_chunks.py for the file layout.
+static const int CHUNK_TILES = 8;
+static const int CHUNK_COLS = SALTMERE_W / CHUNK_TILES;
+static const int CHUNK_ROWS = SALTMERE_H / CHUNK_TILES;
+static NE_Model *chunks[CHUNK_COLS * CHUNK_ROWS];
 static NE_Material *player_mat;
 static Player player;
 static float cam_x, cam_z;
@@ -173,7 +178,7 @@ static bool walkable(int tx, int ty)
     if (tx < 0 || ty < 0 || tx >= SALTMERE_W || ty >= SALTMERE_H)
         return false;
     char t = saltmere_map[ty][tx];
-    return t == '.' || t == ',' || t == 'P';
+    return t == '.' || t == ',' || t == 'r' || t == 'P';
 }
 
 static void player_update(u32 held)
@@ -246,17 +251,37 @@ static void draw_player(void)
     NE_ViewPop();
 }
 
+#ifndef CAM_ZOOM
+#define CAM_ZOOM 1.0f // test builds can pull the camera back for overview screenshots
+#endif
+
+// How far from the camera's tile a chunk centre can be and still be drawn.
+static const float VIEW_SIDE = 14.0f * CAM_ZOOM, VIEW_NORTH = 16.0f * CAM_ZOOM, VIEW_SOUTH = 9.0f * CAM_ZOOM;
+
 static void draw_scene(void)
 {
     // Black 2 style: high and behind, tilted down at the player.
     NE_CameraSet(camera,
-                 cam_x, 1.5f, cam_z + 1.7f,
+                 cam_x, 1.5f * CAM_ZOOM, cam_z + 1.7f * CAM_ZOOM,
                  cam_x, 0.0f, cam_z - 0.15f,
                  0, 1, 0);
     NE_CameraUse(camera);
 
     NE_PolyFormat(31, 0, (NE_LightEnum)0, NE_CULL_NONE, (NE_OtherFormatEnum)0);
-    NE_ModelDraw(town);
+
+    // Only the chunks the camera can see. It looks north, so it sees further that way.
+    float cam_tx = cam_x / TILE + SALTMERE_W / 2.0f, cam_ty = cam_z / TILE + SALTMERE_H / 2.0f;
+    for (int y = 0; y < CHUNK_ROWS; y++)
+    {
+        for (int x = 0; x < CHUNK_COLS; x++)
+        {
+            float dx = x * CHUNK_TILES + CHUNK_TILES / 2.0f - cam_tx;
+            float dy = y * CHUNK_TILES + CHUNK_TILES / 2.0f - cam_ty;
+            if (dx > -VIEW_SIDE && dx < VIEW_SIDE && dy > -VIEW_NORTH && dy < VIEW_SOUTH)
+                NE_ModelDraw(chunks[y * CHUNK_COLS + x]);
+        }
+    }
+
     draw_player();
 }
 
@@ -278,15 +303,20 @@ int main(int argc, char **argv)
     consoleInit(&bottomScreen, 0, BgType_Text4bpp, BgSize_T_256x256, 2, 1, false, true);
 
     camera = NE_CameraCreate();
-    town = NE_ModelCreate(NE_Static);
-    NE_ModelLoadStaticMesh(town, saltmere_bin);
 
     NE_Material *town_mat = NE_MaterialCreate();
     NE_MaterialTexLoad(town_mat, NE_PAL256, 128, 128, NE_TEXGEN_TEXCOORD, saltmere_tex_bin);
     NE_Palette *town_pal = NE_PaletteCreate();
     NE_PaletteLoad(town_pal, saltmere_pal_bin, saltmere_pal_bin_size / 2, NE_PAL256);
     NE_MaterialSetPalette(town_mat, town_pal);
-    NE_ModelSetMaterial(town, town_mat);
+
+    const u32 *offsets = (const u32 *)saltmere_bin;
+    for (int i = 0; i < CHUNK_COLS * CHUNK_ROWS; i++)
+    {
+        chunks[i] = NE_ModelCreate(NE_Static);
+        NE_ModelLoadStaticMesh(chunks[i], saltmere_bin + offsets[i]);
+        NE_ModelSetMaterial(chunks[i], town_mat);
+    }
 
     player_mat = NE_MaterialCreate();
     NE_MaterialTexLoad(player_mat, NE_PAL16, 128, 128,
@@ -300,6 +330,11 @@ int main(int argc, char **argv)
         for (int x = 0; x < SALTMERE_W; x++)
             if (saltmere_map[y][x] == 'P')
                 player = { x, y, DOWN, 0, 0 };
+#ifdef SHOT_X
+    // Test builds only: start somewhere else, for screenshots of each part of town.
+    player.tx = SHOT_X;
+    player.ty = SHOT_Y;
+#endif
     player_pos(&cam_x, &cam_z);
 
     save_init(argc, argv);
@@ -309,7 +344,7 @@ int main(int argc, char **argv)
         data = { SAVE_MAGIC, 0 };
 
     printf("\x1b[1;1HPoke Legends: Beyond the Nine");
-    printf("\x1b[3;1HPort Saltmere (block-out)");
+    printf("\x1b[3;1HPort Saltmere");
     printf("\x1b[4;1HD-pad: walk");
     printf("\x1b[14;1HSave test");
     if (backend == Backend::File)
@@ -330,6 +365,9 @@ int main(int argc, char **argv)
     int selftest = 0;
 #endif
 
+    int shown_x = -1, shown_y = -1, fps_frames = 0;
+    time_t fps_second = time(NULL);
+
     while (1)
     {
         NE_WaitForVBL((NE_UpdateFlags)0);
@@ -349,8 +387,6 @@ int main(int argc, char **argv)
         cam_x += (px - cam_x) * 0.2f;
         cam_z += (pz - cam_z) * 0.2f;
 
-        printf("\x1b[6;1HTile: %2d,%2d  ", player.tx, player.ty);
-
         if ((down & KEY_A) || (selftest > 0 && --selftest == 0))
         {
             data.counter++;
@@ -360,6 +396,22 @@ int main(int argc, char **argv)
         }
 
         NE_Process(draw_scene);
+
+        // Console writes are slow, so only update these when they change.
+        if (player.tx != shown_x || player.ty != shown_y)
+        {
+            shown_x = player.tx;
+            shown_y = player.ty;
+            printf("\x1b[6;1HTile: %2d,%2d  ", player.tx, player.ty);
+        }
+        fps_frames++;
+        time_t now = time(NULL);
+        if (now != fps_second)
+        {
+            printf("\x1b[7;1HFPS: %2d  CPU: %3d%%  ", fps_frames, NE_GetCPUPercent());
+            fps_second = now;
+            fps_frames = 0;
+        }
     }
 
     return 0;

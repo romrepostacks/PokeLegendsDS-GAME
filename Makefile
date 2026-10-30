@@ -35,12 +35,12 @@ IMG2DS		:= $(BLOCKSDSEXT)/nitro-engine/tools/img2ds/img2ds.py
 models: data/models/saltmere.bin
 textures: data/textures/player_tex.bin data/textures/saltmere_tex.bin
 
-data/models/saltmere.bin: maps/saltmere.h tools/blender/build_saltmere.py
-	@mkdir -p build
+data/models/saltmere.bin: maps/saltmere.h tools/blender/build_saltmere.py tools/art/pack_chunks.py
+	@rm -rf build/saltmere
+	@mkdir -p build/saltmere
 	$(BLENDER) -b --factory-startup --python tools/blender/build_saltmere.py -- \
-		$$(cygpath -w build/saltmere.obj) $$(cygpath -w art/models/saltmere.blend)
-	$(PYTHON) $$(cygpath -w $(OBJ2DL)) --input build/saltmere.obj --output $@ \
-		--texture 128 128 --use-vertex-color --scale 0.25
+		$$(cygpath -w build/saltmere) $$(cygpath -w art/models/saltmere.blend)
+	$(PYTHON) tools/art/pack_chunks.py $$(cygpath -w $(OBJ2DL)) build/saltmere 6 5 $@
 
 # Pixel art is drawn by scripts, then converted to paletted DS textures.
 art/sprites/player.png: tools/art/make_player.py

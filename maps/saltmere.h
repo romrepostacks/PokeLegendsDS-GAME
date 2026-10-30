@@ -1,37 +1,57 @@
-// Port Saltmere block-out: the plaza and the docks.
+// Port Saltmere: the harbour town. One character per tile, row 0 is north.
 //
-// One character per tile, row 0 is north. The game reads this for collision, and
-// tools/blender/build_saltmere.py reads it to build the 3D model, so edit it here and
-// run `make models` to rebuild the model.
+// The game reads this for collision, and tools/blender/build_saltmere.py reads it to build
+// the 3D model, so edit it here and run `make models` to rebuild the model.
 //
-//   #  building      c  crate        f  fountain     L  lighthouse
-//   .  stone plaza   ,  dock planks  ~  water
-//   P  player start (plaza)
+//   #  building (each solid rectangle is one house; keep a gap between houses)
+//   .  stone street    ,  dock planks   r  rock          ~  sea
+//   c  crate           x  snowbank      P  player start
+//   f  fountain (one 4x4 block)         L  lighthouse (one 2x2 block)
 
 #pragma once
 
-static const int SALTMERE_W = 16;
-static const int SALTMERE_H = 20;
+static const int SALTMERE_W = 48;
+static const int SALTMERE_H = 40;
 
 static const char *const saltmere_map[SALTMERE_H] = {
-    "################",
-    "##...######...##",
-    "#..............#",
-    "#..cc......c...#",
-    "#......ff......#",
-    "#......ff......#",
-    "#..............#",
-    "##.....P......##",
-    "#..............#",
-    "#c.............#",
-    "~~~~,,,~~~~,,,~~",
-    "~~~~,,,~~~~,,,~~",
-    "~~~~,,,~~~~,,,~~",
-    "~~~~,,,~~~~,,,~~",
-    "~~~~,c,~~~~,,,~~",
-    "~~~~,,,~~~~,,,~~",
-    "~~~~~~~~~~~,L,~~",
-    "~~~~~~~~~~~~~~~~",
-    "~~~~~~~~~~~~~~~~",
-    "~~~~~~~~~~~~~~~~",
+    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "xx............................................xx",
+    "xx.######..#####..#######..#####..######.####.xx",
+    "xx.######..#####..#######..#####..######.####.xx",
+    "xx.######..#####..#######..#####..######.####.xx",
+    "xx.######..#####..#######..#####..######.####.xx",
+    "xx............................................xx",
+    "xx............................................xx",
+    "xx..........#####..............#####..........xx",
+    "xx.#####....#####..............#####...######.xx",
+    "xx.#####....#####..............#####...######.xx",
+    "xx.#####....#####..............#####...######.xx",
+    "xx.#####..............ffff.............######.xx",
+    "xx.#####..............ffff.............######.xx",
+    "xx....................ffff....................xx",
+    "xx....................ffff....................xx",
+    "xx............................................xx",
+    "xx.######.............................#######.xx",
+    "xx.######..#####...............#####..#######.xx",
+    "xx.######..#####...............#####..#######.xx",
+    "xx.######..#####...............#####..#######.xx",
+    "xx.........#####...............#####..........xx",
+    "xx.....................P......................xx",
+    "xx................c...........................xx",
+    "xx.......c.......cc...........................xx",
+    "xx............................c...............xx",
+    "xx............................................xx",
+    "~~~~~~~~~~~~,,,~~~~~~~~~~~,,,~~~~~~~~~~rrrrrrr~~",
+    "~~~~~~~~~~~~,,,~~~~~~~~~~~,,,~~~~~~~~~~rrrrrrr~~",
+    "~~~~~~~~~~~~,,,~~~~~~~~~~~,,,~~~~~~~~~~rrrrrrr~~",
+    "~~~~~~~~~~~~,,,~~~~~~~~~~~,,,~~~~~~~~~~rrrrLLr~~",
+    "~~~~~~~~~~~~,,,~~~~~~~~~~~,,,~~~~~~~~~~rrrrLLr~~",
+    "~~~~~~~~~~~~,c,~~~~~~~~~~~,,,~~~~~~~~~~rrrrrrr~~",
+    "~~~~~~~~~~~~,,,~~~~~~~~~~~,,,~~~~~~~~~~rrrrrrr~~",
+    "~~~~~~~~~~~~,,,~~~~~~~~~~~,c,~~~~~~~~~~~~rrrr~~~",
+    "~~~~~~~~~~~~,,,~~~~~~~~~~~,,,~~~~~~~~~~~~rrrr~~~",
+    "~~~~~~~~~~~~~~~~~~~~~~~~~~,,,~~~~~~~~~~~~~~~~~~~",
+    "~~~~~~~~~~~~~~~~~~~~~~~~~~,,,~~~~~~~~~~~~~~~~~~~",
+    "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
 };

@@ -1,0 +1,9 @@
+town-overview.png: wide camera, not the game camera. Whole town at once would pass the 2048 polygon limit, so this is closer in.
+shot-plaza.png: much bigger town square with the new two-tier fountain.
+shot-houses.png: detached houses, one roof each, door on the street side, gaps between them.
+shot-lighthouse.png: lighthouse moved off the dock onto a rock headland. Taller, its top can leave the frame at the game camera.
+shot-docks.png: approved docks, unchanged apart from the longer main dock.
+shot-water.png: sea and quay edge. The water is still; animation is not in yet.
+player-sheet.png: unchanged. Frame cards were denied with no note, so waiting on what to change.
+player-down/up/left/right.png: unchanged standing frames.
+textures.png: approved atlas, unchanged.
