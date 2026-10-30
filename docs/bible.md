@@ -39,18 +39,41 @@ busy region in Black 2's style: big cities, long bridges, harbours, a desert hig
 A new trainer, any appearance (2 options, boy/girl, like Black 2). Lives in Lumeris's quiet southern harbour
 town; the story starts when a ferry from the nine lands arrives for the first time.
 
-## Region sketch (8 gyms + league)
-| # | Town | Gym type | Look |
+## Region layout (8 gyms + league)
+Lumeris is a ring of land around **Lumeris Bay**. The League sits on an island in the middle of the bay. You walk
+the ring clockwise from the south coast, and every route has one thing that stops you skipping ahead.
+
+```
+                 R5 (Kai)                          
+   Duneshelf(4) ---------- Meridia(5) ==Grand Bridge east== R6 -- Glasswater(6)
+        |                      ||                                    |
+   R4 Desert Highway      Grand Bridge                             R7 climb
+        |                 (League span)                              |
+   Lanternway(3)          [ League Island ]                     Hoarfrost(7)
+        |                      ||                                    |
+   R3 Canal Path          (8-badge gate)                       R8 Choir Caves
+        |                                                            |
+   Brasswick(2) -- R2 Coast -- Harbourline(1) -- R1 -- Seabright -- R9 -- Ashenreach(8)
+                                                (home)   (collapsed until badge 8)
+```
+
+| Step | Place | Gym | What stops you going further until then |
 |---|---|---|---|
-| 1 | Harbourline | Normal | fishing harbour, start town nearby |
-| 2 | Brasswick | Steel | factory town, conveyor-belt gym |
-| 3 | Lanternway | Fire | night market city, first big city |
-| 4 | Duneshelf | Ground | desert highway stop, ruins in the sand |
-| 5 | Meridia | Electric | the capital: skyscrapers, the big bridge |
-| 6 | Glasswater | Water | lake town, Choir mural underwater |
-| 7 | Hoarfrost | Ice | observatory on a snow peak |
-| 8 | Ashenreach | Ghost | the old Choir city, half ruin |
-|   | Lumeris League | | on an island at the end of the bridge |
+| 0 | Seabright (home, south coast) | none | R9 east is a collapsed Choir tunnel: opens after badge 8 as a shortcut home |
+| 1 | R1, then Harbourline | Normal | R2 gate: dock worker won't let you pass until you have a badge |
+| 2 | R2 Coast, then Brasswick | Steel | R3 drawbridge raised: lowered by the gym leader after you win |
+| 3 | R3 Canal Path, then Lanternway | Fire | R4 Desert Highway: sandstorm; the Goggles come from the Lanternway leader |
+| 4 | R4 Desert Highway, then Duneshelf | Ground | R5: Team Unbound blockade, cleared in the Duneshelf ruins scene |
+| 5 | R5 (Kai's test), then Meridia | Electric | Grand Bridge east span closed for repairs until badge 5 |
+| 6 | Grand Bridge east, R6, then Glasswater | Water | R7 is a cliff climb: needs the climbing move from the Glasswater leader |
+| 7 | R7, then Hoarfrost | Ice | R8 Choir Caves are dark and frozen; the Hoarfrost observatory scene opens them |
+| 8 | R8 Choir Caves, then Ashenreach | Ghost | none: the ring is complete, R9 opens home |
+| League | Grand Bridge League span from Meridia | | gate guard checks 8 badges; Victory Road is the span itself |
+
+Visuals per town: Harbourline is a fishing harbour; Brasswick a factory town (conveyor-belt gym); Lanternway a
+night market city; Duneshelf a desert stop on ruins; Meridia the capital (skyscrapers, the Grand Bridge);
+Glasswater a lake town (Choir mural underwater); Hoarfrost an observatory on a snow peak; Ashenreach the old Choir
+city, half ruin.
 
 ## Game structure
 - Black 2 style: 3D overworld with a tilted camera, 2D sprites, two-screen battles with a touch menu.
