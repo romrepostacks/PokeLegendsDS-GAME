@@ -1,6 +1,6 @@
 # Kaelmoor — region bible (draft)
 
-Region 1 of **Poké Legends: Beyond the Nine**. All names are placeholders; mark up anything.
+Region 1 of **Poké Legends: Beyond the Nine**. Names were confirmed by Kyle on 2026-10-30.
 
 ## Where Lands of Nine left off
 
@@ -163,9 +163,9 @@ animated sprite, name, type, a line of flavour text and its final evolution. Tap
 
 Ivo then takes the starter of the same generation whose type beats yours, as rivals did in the old games.
 
-## Placeholder names
+## Names
 
-Every name below is a placeholder. Keep, rename or cut any of them.
+Confirmed 2026-10-30.
 
 | Kind | Names |
 |------|-------|
@@ -183,7 +183,3 @@ Returning names from Legends of 9 (Hawthorn, Hale, Kai, Wren, Rimefall Town) sta
 ## Title
 
 **Poké Legends: Beyond the Nine** (chosen 2026-10-30).
-
-## Open questions
-
-- Placeholder names: keep or rename any in the table above.
