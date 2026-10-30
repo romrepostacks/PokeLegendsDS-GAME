@@ -146,7 +146,11 @@ static bool save_write(SaveData *data)
 
 // The model is built at 1 tile = 0.25 units, centred on the map (see `make models`).
 static const float TILE = 0.25f;
-static const int STEP_FRAMES = 12; // frames to walk one tile
+// Frames to cross one tile on foot, running (hold B) and on the bike (Select toggles it
+// for now; it becomes a key item later). Also the sprite sheet's row blocks, see
+// tools/art/make_player.py.
+enum Mode { WALK, RUN, BIKE };
+static const int STEP_FRAMES[] = { 12, 6, 4 };
 
 enum Dir { DOWN, UP, LEFT, RIGHT };
 static const int DX[] = { 0, 0, -1, 1 };
@@ -158,6 +162,8 @@ struct Player
     int dir;     // also the row in the sprite sheet
     int step;    // frames left in the current step, 0 when standing
     int foot;    // which foot leads this step: walk frame 1 or 2
+    int mode;    // Mode of the current step
+    bool bike;   // riding the bike
 };
 
 static NE_Camera *camera;
@@ -181,8 +187,11 @@ static bool walkable(int tx, int ty)
     return t == '.' || t == ',' || t == ':' || t == 'r' || t == 'P';
 }
 
-static void player_update(u32 held)
+static void player_update(u32 held, u32 down)
 {
+    if (down & KEY_SELECT)
+        player.bike = !player.bike;
+
     // Finish the current step. When it ends, a held direction starts the next step on
     // the same frame, so walking doesn't pause for a frame on every tile.
     if (player.step > 0 && --player.step > 0)
@@ -197,6 +206,7 @@ static void player_update(u32 held)
         dir = LEFT;
     else if (held & KEY_RIGHT)
         dir = RIGHT;
+    player.mode = player.bike ? BIKE : (held & KEY_B) ? RUN : WALK;
     if (dir < 0)
         return;
 
@@ -207,14 +217,14 @@ static void player_update(u32 held)
         return;
     player.tx = nx;
     player.ty = ny;
-    player.step = STEP_FRAMES;
+    player.step = STEP_FRAMES[player.mode];
     player.foot = player.foot == 1 ? 2 : 1;
 }
 
 // Where the player is drawn this frame: between the previous and the current tile.
 static void player_pos(float *x, float *z)
 {
-    float t = (float)player.step / STEP_FRAMES;
+    float t = (float)player.step / STEP_FRAMES[player.mode];
     *x = tile_x(player.tx) - DX[player.dir] * TILE * t;
     *z = tile_z(player.ty) - DY[player.dir] * TILE * t;
 }
@@ -224,9 +234,14 @@ static void draw_player(void)
     float px, pz;
     player_pos(&px, &pz);
 
-    // Walk frame: the leading foot for the first half of a step, then standing.
-    int frame = player.step > STEP_FRAMES / 2 ? player.foot : 0;
-    int u0 = frame * 32, v0 = player.dir * 32;
+    // On foot: the leading foot for the first half of a step, then the passing frame.
+    // On the bike the pedals keep turning for the whole step and coast when stopped.
+    int frame;
+    if (player.mode == BIKE)
+        frame = player.step > 0 ? player.foot : 0;
+    else
+        frame = player.step > STEP_FRAMES[player.mode] / 2 ? player.foot : 0;
+    int u0 = frame * 32, v0 = (player.mode * 4 + player.dir) * 32;
 
     NE_ViewPush();
     NE_ViewMove(px, 0, pz);
@@ -321,7 +336,7 @@ int main(int argc, char **argv)
     }
 
     player_mat = NE_MaterialCreate();
-    NE_MaterialTexLoad(player_mat, NE_PAL16, 128, 128,
+    NE_MaterialTexLoad(player_mat, NE_PAL16, 128, 512,
                        (NE_TextureFlags)(NE_TEXGEN_TEXCOORD | NE_TEXTURE_COLOR0_TRANSPARENT),
                        player_tex_bin);
     NE_Palette *player_pal = NE_PaletteCreate();
@@ -347,7 +362,7 @@ int main(int argc, char **argv)
 
     printf("\x1b[1;1HPoke Legends: Beyond the Nine");
     printf("\x1b[3;1HPort Saltmere");
-    printf("\x1b[4;1HD-pad: walk");
+    printf("\x1b[4;1HD-pad: walk  B: run\n Select: bike on/off");
     printf("\x1b[14;1HSave test");
     if (backend == Backend::File)
         printf("\x1b[15;1HSave: file\n %.60s", save_path);
@@ -383,7 +398,8 @@ int main(int argc, char **argv)
         if (frame++ < 180)
             held |= KEY_DOWN;
 #endif
-        player_update(held);        float px, pz;
+        player_update(held, down);
+        float px, pz;
         player_pos(&px, &pz);
         // Locked to the player like Black 2; easing behind it made the walk look jerky.
         cam_x = px;
