@@ -234,7 +234,9 @@ static void draw_player(void)
     NE_MaterialUse(player_mat);
 
     // A 32x32 billboard leaning back to face the camera (about 39 degrees down).
-    const float w = 0.16f, h = 0.32f, up = 0.78f, back = -0.63f;
+    // Sized so one sprite pixel is one screen pixel at the game camera: any other scale
+    // drops or doubles pixels unevenly, because the DS has no texture filtering.
+    const float w = 0.183f, h = 0.355f, up = 0.78f, back = -0.63f;
     NE_PolyBegin(GL_QUAD);
     NE_PolyColor(RGB15(31, 31, 31));
     NE_PolyTexCoord(u0, v0 + 32);
@@ -381,8 +383,7 @@ int main(int argc, char **argv)
         if (frame++ < 180)
             held |= KEY_DOWN;
 #endif
-        player_update(held);
-        float px, pz;
+        player_update(held);        float px, pz;
         player_pos(&px, &pz);
         // Locked to the player like Black 2; easing behind it made the walk look jerky.
         cam_x = px;
