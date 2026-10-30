@@ -2,31 +2,63 @@
 
 Region 1 of Legends DS. All names are placeholders; mark up anything.
 
+## Where Lands of Nine left off
+
+Nine lands around one mountain. The player beat every Champion's hall, gathered all 18 plates, faced Arceus in
+the Hall of Origin, and beat Kai, the Origin Champion. Team Tempest, the Tidewardens, Wren (Vellorin's Champion),
+Prof. Hawthorn and the eight Champions are all canon.
+
 ## Premise
 
-Years after Legends of 9, an icebreaker sails north from **Rimefall Town** (Vellorin's ice-gym town) to
-**Kaelmoor**, a frozen continent ringed around a shattered meteor crater. You're the youngest member of the
-expedition. Under the ice cap something enormous is sleeping: **Kyurem**, the empty husk left when an ancient
-dragon split in two. Team Thaw wants to melt the ice to reach it.
+**Three years after Origin.** When the 18 plates came back together, the pack ice north of the nine lands split
+open, and for the first time ships can reach **Kaelmoor**: a frozen continent ringed around a shattered meteor
+crater, outside anything Arceus shaped. An icebreaker expedition sails north from **Rimefall Town** in Vellorin.
+You're its youngest member.
+
+Under the ice cap something enormous is sleeping: **Kyurem**, the empty husk left when an ancient dragon split in
+two, long before the nine lands. **Team Thaw** wants to melt the ice to reach it.
+
+**Player:** a new trainer, two appearance options (as in Black 2). The hero of Lands of Nine is a legend people
+talk about, and nobody knows where they went (a door for a sequel).
 
 ## Map
 
-The region is a ring around the crater, travelled clockwise. Each stretch is colder and harsher than the last.
-The crater (the Hollow Heart) sits in the middle and opens only at the end.
+The region is a ring around the crater, travelled clockwise from the hub. Each leg is colder and harsher than the
+last, and each one is opened by the badge or expedition gear from the town before it, so there is always exactly one
+way forward. The crater (the Hollow Heart) sits in the middle and opens only at the end.
 
 ```
-            Rimeholm (8) ─── Aurora Spire (League)
-           /                         \
-   Wraithmoor (7)                  Cragspire (3)
-       |          [ Hollow Heart ]        |
-   Emberhalt (6)     (crater)       Hoarfrost (4)
-           \                         /
-            Duneholt (2)     Ironwake (5)
-                 \             /
-               PORT SALTMERE (1, hub)
-                       |
-                  ferry → south (region 2)
+                 (4) HOARFROST ──R4── (5) IRONWAKE
+                   /                          \
+                 R3                            R5
+                 /                              \
+         (3) CRAGSPIRE      [ HOLLOW HEART ]     (6) EMBERHALT
+                 \            (crater)            /
+                 R2                              R6
+                   \                            /
+         (2) DUNEHOLT                   (7) WRAITHMOOR
+                     \                       /
+                      R1                   R7
+                        \                 /
+                   (1) PORT SALTMERE ─R8─ (8) RIMEHOLM ── Victory Glacier ── Aurora Spire
+                           |                                                 (League, on the rim)
+                     ferry south (region 2)
 ```
+
+**How each leg opens:**
+
+| Leg | From → to | Opened by |
+|-----|-----------|-----------|
+| R1 | Saltmere → Duneholt | Open from the start |
+| R2 | Duneholt → Cragspire | Snowshoes (story, after badge 2) |
+| R3 | Cragspire → Hoarfrost | Ice Pick (story, after badge 3), through Cragspire Mines |
+| R4 | Hoarfrost → Ironwake | Night freeze: the inlet only freezes over after dark |
+| R5 | Ironwake → Emberhalt | Raft (story, after the Ironwake raid) |
+| R6 | Emberhalt → Wraithmoor | Heat Lamp (after badge 6) for the blizzard stretch |
+| R7 | Wraithmoor → Rimeholm | Grapple (after badge 7) for the rim cliffs |
+| R8 | Rimeholm → Saltmere | One-way ice slide home; closes the loop as a shortcut |
+| — | Rimeholm → Aurora Spire | 8 badges, through Victory Glacier |
+| — | Rimeholm → Hollow Heart | Story: the descent with Ivo |
 
 | # | Town | Gym | Leader | Notes |
 |---|------|-----|--------|-------|
@@ -64,16 +96,17 @@ Ice Pick (break ice blocks), Snowshoes (deep snow), Grapple (cliffs), Raft (open
 
 ## Story
 
-**Prologue.** Aboard the icebreaker *Northwind*. **Prof. Halvard** leads the expedition. **Hale**, the Rimefall gym
-leader from Legends of 9, sees you off and gives you your starter. You meet the rival, **Ivo**, Halvard's kid, who
-resents a newcomer taking "his" place on the expedition.
+**Prologue.** Aboard the icebreaker *Northwind*. **Prof. Hawthorn** sends you, and the expedition is led by his
+colleague **Prof. Halvard**. **Hale**, Rimefall's gym leader from Legends of 9, sees you off and gives you your
+starter. You meet the rival, **Ivo**, Halvard's kid, who resents a newcomer taking "his" place on the expedition.
 
 **Act 1 (badges 1–2): arrival.** You land at Port Saltmere and set up camp. The first heat-drill holes appear in
 the ice, along with "LET IT MELT" graffiti. Team Thaw is introduced as eco-radicals who say the ice cap is a prison.
 
 **Act 2 (badges 3–5): the golems.** In the ruins you find the three Regis, sealed as guardians that keep the Hollow
 Heart frozen. Team Thaw's leader **Dr. Sefa Varn** and her admins **Brann** and **Mira** are breaking the seals one by one.
-The act ends with a raid on their HQ in Ironwake, and you fight Brann.
+The act ends with a raid on their HQ in Ironwake, and you fight Brann. **Kai**, the Origin Champion, turns up after
+badge 4, has heard of you, and battles you once at a fixed level as a test.
 
 **Act 3 (badges 6–8): the melt.** Thaw sets off a geothermal drill under Emberhalt. Lakes stop refreezing, and the
 thaw cycle breaks across half the map until you stop it. The twist: Halvard has been funding Thaw, because he
@@ -84,8 +117,14 @@ its halves. You battle and catch it (or calm it, with a retry, like Lugia in Leg
 
 **Ending.** Victory Glacier, then the Aurora Spire League. Ivo is the Champion, as Wren was in Legends of 9.
 
-**Post-game.** Bring the three Regis to the **Titan's Vault** for Regigigas. Halvard's notes point south across the
+**Post-game.** **Wren** runs a battle facility at Port Saltmere, and the Challenge Tower from Legends of 9 returns.
+Bring the three Regis to the **Titan's Vault** for Regigigas. Halvard's notes point south across the
 sea to where the white and black dragons fell. That's the hook for region 2, with Reshiram and Zekrom.
+
+## Game structure
+
+- Normal level scale (cap 100), not Lands of Nine's 900: a clean start for new players.
+- Carried over from Lands of Nine: Nuzlocke mode (chosen at New Game) and a post-game tower.
 
 ## Cast
 
@@ -93,7 +132,10 @@ sea to where the white and black dragons fell. That's the hook for region 2, wit
 |------|------|-------------|
 | Rival | Ivo | Mirrors your starter; ends on Ice/Dragon |
 | Professor | Halvard | Expedition lead, secretly backing Thaw |
+| Sender | Prof. Hawthorn | Professor from Legends of 9 |
 | Mentor cameo | Hale | Ice gym leader from Legends of 9 |
+| Returning | Kai | Origin Champion; one test battle after badge 4 |
+| Returning | Wren | Vellorin's Champion; post-game battle facility |
 | Villain boss | Dr. Sefa Varn | Fire/Steel (heat machines) |
 | Admins | Brann, Mira | Fire / Water |
 
@@ -107,4 +149,5 @@ roster gets its own file once the battle style is settled.
 
 - Battle style: Black 2 style singles (and doubles), or Legends of 9's whole-party battles?
 - Starter trio: which three?
+- Game title: keep "PokeLegends of Nine DS", or add a subtitle?
 - Keep or rename any placeholder names?
