@@ -1,0 +1,7 @@
+All original designs, hand-placed pixels at 32x32, 4x here. Columns: front, back, side, side walk, run stride 1, run stride 2.
+comparison.png: top row is the current in-game trainer, then the new boy, then the new girl.
+boy.png: spiky orange hair under a teal cap with a brim, orange jacket with a fur collar.
+girl.png: big purple side ponytail under a pale yellow beanie with a pompom, belted blue coat that flares.
+Proportions: head and hair are over half the body height, small body, short legs, dark outline.
+Run: head and body lean forward, legs differ in shape (leading leg forward, trailing leg bent up), arms pump opposite the legs.
+Not done yet: front and back walk frames, front and back run frames, in-between poses, bike. Those follow once the look is approved. Not in the game yet.
