@@ -13,7 +13,7 @@ import struct
 import sys
 
 from colour_options import COLOURS, EYES, HAIR_COLOURS, SKINS
-from paint_character import BOTTOMS, HAIRS, HATS, LOOK_BOY, LOOK_GIRL, OUTLINE, SHOES, TOPS, parts
+from paint_character import BOTTOMS, HAIRS, HATS, HAT_CLIP, LOOK_BOY, LOOK_GIRL, OUTLINE, SHOES, TOPS, box, layer, parts
 
 lpc, data_dir, header = sys.argv[1:4]
 
@@ -48,16 +48,16 @@ LOOK_KEY = {
     "scarf_colour": key("scarf"),
 }
 
-LAYERS = (["body", "legs-trousers", "legs-leggings", "legs-under"] + [f"feet-{s}" for s in SHOES] +
+LAYERS = ([f"hairback-{h}" for h in HAIRS] + ["body", "legs-trousers", "legs-leggings", "legs-under"] + [f"feet-{s}" for s in SHOES] +
           ["bottoms-shorts", "bottoms-skirt"] + [f"top-{t}" for t in TOPS] + ["head"] +
           [f"hair-{h}" for h in HAIRS] + ["scarf"] + [f"hat-{h}" for h in HATS[1:]])
 BASES = {n: LAYERS.index(f"{n.lower()}-{first}") for n, first in
-         (("LEGS", "trousers"), ("FEET", SHOES[0]), ("BOTTOMS", "shorts"), ("TOP", TOPS[0]),
+         (("HAIRBACK", HAIRS[0]), ("LEGS", "trousers"), ("FEET", SHOES[0]), ("BOTTOMS", "shorts"), ("TOP", TOPS[0]),
           ("HAIR", HAIRS[0]), ("HAT", HATS[1]))}
 
 
 def looks(body):
-    base = {**(LOOK_BOY if body == "male" else LOOK_GIRL), **LOOK_KEY, "scarf": True, "hat": HATS[1]}
+    base = {**(LOOK_BOY if body == "male" else LOOK_GIRL), **LOOK_KEY, "scarf": True, "hat": "none"}
     yield base
     for bottoms in BOTTOMS:
         yield {**base, "bottoms": bottoms}
@@ -97,6 +97,18 @@ for (b, l, fr), img in records.items():
 
 with open(f"{data_dir}/look.bin", "wb") as f:
     f.write(struct.pack(f"<{count}I", *offsets) + blob)
+
+# Per frame: the row a hat clips hair at, so hats need no second copy of every hair layer.
+clips = bytearray()
+clip = next(iter(HAT_CLIP.values()))
+for body in ("male", "female"):
+    head = "heads_human_male" if body == "male" else "heads_human_female"
+    for row in range(4):
+        for anim, f in FRAMES:
+            area = (f * 64, row * 64, (f + 1) * 64, (row + 1) * 64)
+            clips.append(box(layer(head, body, anim, area, (255, 255, 255)))[1] + clip)
+with open(f"{data_dir}/look_clips.bin", "wb") as f:
+    f.write(clips)
 
 # Colour rows: 8 shades each, the same maths as paint_character's recolour.
 FIXED = [LOOK_BOY["trim"], LOOK_GIRL["trim"], LOOK_BOY["pompom"], LOOK_BOY["under_colour"]]

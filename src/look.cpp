@@ -5,6 +5,7 @@
 
 #include "look.h"
 #include "look_bin.h"
+#include "look_clips_bin.h"
 #include "look_data.h"
 #include "look_ramps_bin.h"
 
@@ -21,7 +22,7 @@ static u16 colours[256] __attribute__((aligned(32)));
 static bool new_pixels, new_colours;
 
 // Option numbers that the rules below care about.
-enum { HAIR_SHORT = 0, HAIR_SPIKY = 2, HAT_NONE = 0, HAT_HOOD = 4, HAT_EARMUFFS = 5, BOTTOMS_SHORTS = 2 };
+enum { HAT_NONE = 0, HAT_CAP = 3, HAT_HOOD = 4, BOTTOMS_SHORTS = 2 };
 
 void look_init(void)
 {
@@ -73,7 +74,8 @@ void look_apply(const Look *look)
     new_colours = true;
 }
 
-static void blit(int body, int layer, int row, int frame)
+// Rows of the layer above clip_y are left out.
+static void blit(int body, int layer, int row, int frame, int clip_y = 0)
 {
     const u32 *offsets = (const u32 *)look_bin;
     u32 offset = offsets[(body * LOOK_LAYERS + layer) * 4 * LOOK_FRAMES + row * LOOK_FRAMES + frame];
@@ -85,7 +87,7 @@ static void blit(int body, int layer, int row, int frame)
     for (int y = y0; y < y0 + h; y++)
     {
         for (int x = x0; x < x0 + w; x++, src++)
-            if (*src && y < 64)
+            if (*src && y < 64 && y - FOOT_SHIFT >= clip_y)
                 pixels[y * 64 + x] = *src;
     }
 }
@@ -94,6 +96,12 @@ void look_compose(const Look *look, int row, int frame)
 {
     int body = look->body;
     memset(pixels, 0, sizeof(pixels));
+    // Beanies and caps hide the hair on top of the head; the hood hides it all.
+    int clip = 0;
+    if (look->hat != HAT_NONE && look->hat <= HAT_CAP)
+        clip = look_clips_bin[(body * 4 + row) * LOOK_FRAMES + frame];
+    if (look->hat != HAT_HOOD)
+        blit(body, LAYER_HAIRBACK + look->hair, row, frame, clip);
     blit(body, LAYER_BODY, row, frame);
     bool over_leggings = look->bottoms >= BOTTOMS_SHORTS;
     blit(body, over_leggings ? LAYER_LEGS_UNDER : LAYER_LEGS + look->bottoms, row, frame);
@@ -103,11 +111,7 @@ void look_compose(const Look *look, int row, int frame)
     blit(body, LAYER_TOP + look->top, row, frame);
     blit(body, LAYER_HEAD, row, frame);
     if (look->hat != HAT_HOOD)
-    {
-        // Spikes only show with nothing on top; under a hat, spiky hair is short hair.
-        bool flat = look->hair == HAIR_SPIKY && look->hat != HAT_NONE && look->hat != HAT_EARMUFFS;
-        blit(body, LAYER_HAIR + (flat ? HAIR_SHORT : look->hair), row, frame);
-    }
+        blit(body, LAYER_HAIR + look->hair, row, frame, clip);
     if (look->scarf)
         blit(body, LAYER_SCARF, row, frame);
     if (look->hat != HAT_NONE)
@@ -139,7 +143,7 @@ void look_upload(void)
 // The creator: the trainer turns and walks on the top screen, with touch tabs below.
 // The screen is 32x24 text cells, and a tap is worked out by cell.
 
-static const char *const HAIR_NAMES[] = { "Short", "Crop", "Spiky", "Shaggy", "Wavy", "Ponytail", "Bob", "Braids" };
+static const char *const HAIR_NAMES[] = { "Short", "Spiky", "Wavy", "High pony", "Side pony", "Braid", "Bob", "Long" };
 static const char *const HAT_NAMES[] = { "None", "Beanie", "Knit cap", "Ball cap", "Hood", "Earmuffs" };
 static const char *const TOP_NAMES[] = { "Jacket", "Parka", "Vest", "Long coat" };
 static const char *const BOTTOM_NAMES[] = { "Trousers", "Leggings", "Shorts", "Skirt" };

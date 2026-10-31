@@ -2,7 +2,7 @@
 #
 #   python tools/art/paint_character.py LPC_DIR OUT_DIR
 #
-# The body, head, eyes, legs and footwear come from LPC layers, recoloured. Hats, hair, scarf
+# The body, head, hair, eyes, legs and footwear come from LPC layers, recoloured. Hats, scarf
 # and coat details are drawn here, once per facing, and anchored in every frame to where the
 # LPC head and torso actually are, so they move with the animation. Sheets have 4 rows: up,
 # left, down, right. A look picks one of each option; see LOOK_BOY and the OPTIONS lists.
@@ -25,7 +25,14 @@ OUTLINE = (28, 30, 52, 255)
 FRAMES = {"walk": 9, "run": 8}
 
 HATS = ("none", "beanie", "knitcap", "cap", "hood", "earmuffs")
-HAIRS = ("short", "crop", "spiky", "shaggy", "wavy", "ponytail", "bob", "braids")
+HAIRS = ("short", "spiky", "wavy", "highpony", "sidepony", "braid", "bob", "long")
+# Hand-drawn LPC hair. Styles with two layers have a part behind the body as well.
+LPC_HAIR = {"short": "hair_parted3", "spiky": "hair_spiked", "wavy": "hair_xlong_wavy",
+            "highpony": "hair_high_ponytail", "sidepony": "hair_shoulderr", "braid": "hair_braid",
+            "bob": "hair_bob", "long": "hair_long_straight"}
+# Hats that hide the hair on top of the head: hair above this line, from the top of the head,
+# goes, and whatever hangs below the hat stays.
+HAT_CLIP = {"beanie": 8, "knitcap": 8, "cap": 8}
 TOPS = ("padded", "parka", "vest", "longcoat")
 BOTTOMS = ("trousers", "leggings", "shorts", "skirt")
 SHOES = ("boots", "tallboots", "sneakers")
@@ -38,7 +45,7 @@ LOOK_BOY = {
     "under_colour": (64, 56, 60), "shoe_colour": (124, 80, 48), "scarf_colour": (70, 170, 160),
 }
 LOOK_GIRL = {
-    **LOOK_BOY, "body": "female", "hair": "wavy", "top": "longcoat", "bottoms": "leggings",
+    **LOOK_BOY, "body": "female", "hair": "long", "top": "longcoat", "bottoms": "leggings",
     "scarf": True, "hat_colour": (46, 140, 136), "hair_colour": (236, 196, 96),
     "top_colour": (46, 146, 140), "trim": (120, 80, 50), "bottoms_colour": (64, 56, 60),
 }
@@ -79,24 +86,32 @@ def recolour(img, colour):
 raw_cache = {}
 
 
-def raw_layer(name, body, anim):
-    key = (name, body, anim)
+def raw_layer(name, body, anim, which=0):
+    key = (name, body, anim, which)
     if key not in raw_cache:
         d = definition(name)
-        path = d[sorted(k for k in d if k.startswith("layer_"))[0]].get(body)
+        path = d[sorted(k for k in d if k.startswith("layer_"))[which]].get(body)
         base = f"{lpc}/spritesheets/{path}"
-        file = f"{base}{anim}.png" if os.path.isfile(f"{base}{anim}.png") else f"{base}{anim}/white.png"
+        file = f"{base}{anim}.png"
+        if not os.path.isfile(file):
+            file = f"{base}{anim}/white.png"
+        if not os.path.isfile(file):
+            file = sorted(glob.glob(f"{base}{anim}/*.png"))[0]
         raw_cache[key] = Image.open(file).convert("RGBA")
     return raw_cache[key]
+
+
+def layer_count(name):
+    return sum(k.startswith("layer_") for k in definition(name))
 
 
 coloured_cache = {}
 
 
-def layer(name, body, anim, area, colour):
-    key = (name, body, anim, area, colour)
+def layer(name, body, anim, area, colour, which=0):
+    key = (name, body, anim, area, colour, which)
     if key not in coloured_cache:
-        coloured_cache[key] = recolour(raw_layer(name, body, anim).crop(area), colour)
+        coloured_cache[key] = recolour(raw_layer(name, body, anim, which).crop(area), colour)
     return coloured_cache[key]
 
 
@@ -118,130 +133,6 @@ def rgba(c):
 
 def box(img):
     return img.getbbox() or (24, 16, 40, 40)
-
-
-# --- Hair -----------------------------------------------------------------------------
-
-def hair_top(d, cx, top, w, col, dark):
-    """The crown of the head. Hats sit over this."""
-    x0, x1 = cx - w // 2 - 1, cx + w // 2 + 1
-    d.pieslice((x0, top - 2, x1, top + 18), 180, 360, fill=col)
-    for x in range(x0 + 3, x1 - 1, 4):
-        d.line((x, top + 1, x + 1, top + 6), fill=dark)
-
-
-def fringe(d, x0, x1, y, col, length=2):
-    for x in range(x0, x1 + 1, 2):
-        d.line((x, y, x, y + (length if (x - x0) % 4 == 0 else 1)), fill=col)
-
-
-def wavy(d, x0, x1, y0, y1, col, dark, wave):
-    """A wavy lock of hair: each row shifts a little, so the edge is soft and curling."""
-    for y in range(y0, y1 + 1):
-        dx = int(round(math.sin(y * 0.8 + wave) * 1.4))
-        d.line((x0 + dx, y, x1 + dx, y), fill=col)
-        if (y - y0) % 3 == 0:
-            d.point((x1 + dx, y), fill=dark)
-
-
-def braid(d, x, y, col, dark, tie):
-    for i in range(0, 15):
-        d.line((x, y + i, x + 3, y + i), fill=dark if i % 4 == 3 else col)
-    d.rectangle((x, y + 15, x + 3, y + 16), fill=tie)
-
-
-def side_back(cx, x0, x1, facing, inset):
-    """The span of the back of the head in a side view."""
-    return (cx + inset, x1 + 1) if facing == LEFT else (x0 - 1, cx - inset)
-
-
-def draw_hair(d, cx, top, w, facing, look):
-    style, col, dark = look["hair"], rgba(look["hair_colour"]), shade(look["hair_colour"], 0.72)
-    tie = rgba(look["trim"])
-    y = top + 8
-    x0, x1 = cx - w // 2, cx + w // 2
-    if style == "spiky" and look["hat"] in ("none", "earmuffs"):
-        for x in range(x0, x1 - 2, 4):
-            d.polygon([(x, top + 2), (x + 2, top - 5), (x + 4, top + 2)], fill=col)
-    hair_top(d, cx, top, w, col, dark)
-
-    if facing == DOWN:
-        if style == "crop":
-            fringe(d, x0 + 2, x1 - 2, y, col, 1)
-        elif style in ("short", "spiky"):
-            fringe(d, x0, x1, y, col)
-            d.rectangle((x0 - 1, y, x0 + 1, y + 5), fill=col)
-            d.rectangle((x1 - 1, y, x1 + 1, y + 5), fill=dark)
-        elif style == "shaggy":
-            fringe(d, x0, x1, y, col, 3)
-            wavy(d, x0 - 2, x0 + 1, y, y + 9, col, dark, 0)
-            wavy(d, x1 - 1, x1 + 2, y, y + 9, col, dark, 1.5)
-        elif style == "wavy":
-            fringe(d, x0, x1, y, col)
-            wavy(d, x0 - 3, x0 + 2, y, y + 15, col, dark, 0)
-            wavy(d, x1 - 2, x1 + 3, y, y + 15, col, dark, 1.5)
-        elif style == "ponytail":
-            fringe(d, x0, x1, y, col)
-            wavy(d, x1 + 2, x1 + 5, top + 3, y + 10, col, dark, 0.5)
-        elif style == "bob":
-            fringe(d, x0, x1, y, col)
-            d.rectangle((x0 - 3, y, x0 + 2, y + 9), fill=col)
-            d.rectangle((x1 - 2, y, x1 + 3, y + 9), fill=dark)
-        elif style == "braids":
-            fringe(d, x0, x1, y, col)
-            braid(d, x0 - 4, y, col, dark, tie)
-            braid(d, x1 + 1, y, col, dark, tie)
-    elif facing == UP:
-        if style == "crop":
-            d.rectangle((x0, y, x1, y + 4), fill=col)
-        elif style in ("short", "spiky"):
-            d.rectangle((x0 - 1, y, x1 + 1, y + 8), fill=col)
-            for x in range(x0 - 1, x1 + 2, 3):
-                d.line((x, y + 8, x, y + 9), fill=dark)
-        elif style == "shaggy":
-            wavy(d, x0 - 2, x1 + 2, y, y + 11, col, dark, 0)
-        elif style == "wavy":
-            wavy(d, x0 - 3, x1 + 3, y, y + 17, col, dark, 0)
-            for x in range(x0, x1, 4):
-                d.line((x, y + 2, x + 1, y + 15), fill=dark)
-        elif style == "ponytail":
-            d.rectangle((x0 - 1, y, x1 + 1, y + 7), fill=col)
-            wavy(d, cx - 3, cx + 3, y + 2, y + 18, col, dark, 0)
-            d.rectangle((cx - 3, y + 2, cx + 3, y + 3), fill=tie)
-        elif style == "bob":
-            d.rectangle((x0 - 3, y, x1 + 3, y + 10), fill=col)
-            d.line((x0 - 3, y + 10, x1 + 3, y + 10), fill=dark)
-        elif style == "braids":
-            d.rectangle((x0 - 1, y, x1 + 1, y + 7), fill=col)
-            braid(d, x0 - 4, y, col, dark, tie)
-            braid(d, x1 + 1, y, col, dark, tie)
-    else:
-        if style == "crop":
-            a, b = side_back(cx, x0, x1, facing, 4)
-            d.rectangle((a, y, b, y + 4), fill=col)
-        elif style in ("short", "spiky"):
-            a, b = side_back(cx, x0, x1, facing, 3)
-            d.rectangle((a, y, b, y + 7), fill=col)
-            for x in range(a, b + 1, 3):
-                d.line((x, y + 7, x, y + 8), fill=dark)
-        elif style == "shaggy":
-            a, b = side_back(cx, x0, x1, facing, 2)
-            wavy(d, a, b, y, y + 10, col, dark, 0.3)
-        elif style == "wavy":
-            a, b = side_back(cx, x0, x1, facing, 2)
-            wavy(d, a - (0 if facing == LEFT else 3), b + (3 if facing == LEFT else 0), y, y + 16, col, dark, 0.7)
-        elif style == "ponytail":
-            a, b = side_back(cx, x0, x1, facing, 3)
-            d.rectangle((a, y, b, y + 6), fill=col)
-            tail = x1 + 1 if facing == LEFT else x0 - 5
-            wavy(d, tail, tail + 4, y - 3, y + 12, col, dark, 0.2)
-        elif style == "bob":
-            a, b = side_back(cx, x0, x1, facing, 2)
-            d.rectangle((a, y, b + (2 if facing == LEFT else 0), y + 9), fill=col)
-        elif style == "braids":
-            a, b = side_back(cx, x0, x1, facing, 3)
-            d.rectangle((a, y, b, y + 6), fill=col)
-            braid(d, (cx + 3) if facing == LEFT else (cx - 6), y + 4, col, dark, tie)
 
 
 # --- Hats -----------------------------------------------------------------------------
@@ -418,7 +309,21 @@ def parts(look, anim, row, f):
     hx0, htop, hx1, hbot = box(head)
     boxes = box(top)
     tcx = (boxes[0] + boxes[2]) // 2
-    out = [("body", base), ("legs-under" if over_leggings else f"legs-{look['bottoms']}", legs),
+    hair_name = LPC_HAIR[look["hair"]]
+    hair_colour = tuple(look["hair_colour"])
+
+    def hair(which):
+        """Hair layer, without what the hat hides."""
+        img = layer(hair_name, body, anim, area, hair_colour, which).copy()
+        clip = HAT_CLIP.get(look["hat"])
+        if clip:
+            ImageDraw.Draw(img).rectangle((0, 0, 63, htop + clip - 1), fill=(0, 0, 0, 0))
+        return img
+
+    out = []
+    if layer_count(hair_name) > 1 and look["hat"] != "hood":
+        out.append((f"hairback-{look['hair']}", hair(1)))
+    out += [("body", base), ("legs-under" if over_leggings else f"legs-{look['bottoms']}", legs),
            (f"feet-{look['shoes']}", feet)]
     if over_leggings:
         out.append((f"bottoms-{look['bottoms']}", paint_bottoms(look, legs, boxes[3], tcx, row)))
@@ -439,9 +344,7 @@ def parts(look, anim, row, f):
     cx, w = (hx0 + hx1) // 2, hx1 - hx0
     hat = look["hat"]
     if hat != "hood":
-        img, d = over()
-        draw_hair(d, cx, htop, w, row, look)
-        out.append((f"hair-{look['hair']}", outline(img)))
+        out.append((f"hair-{look['hair']}", hair(0)))
     if look["scarf"]:
         img, d = over()
         scarf, dark = rgba(look["scarf_colour"]), shade(look["scarf_colour"], 0.72)
@@ -506,6 +409,7 @@ def grid(name, looks, cols=8, poses=(FRONT, SIDE_RUN)):
             c = Image.new("RGBA", (64, 64), GREY)
             c.alpha_composite(cell(look, anim, row, f))
             out.paste(c.crop((12, 4, 52, 62)), (i % cols * cw + p * 40, i // cols * 58))
+    out.save(f"{out_dir}/{name}-1x.png")
     x(out, 3).save(f"{out_dir}/{name}.png")
 
 
@@ -516,23 +420,11 @@ def options(key, values):
 if __name__ == "__main__":
     out_dir = sys.argv[2]
     os.makedirs(out_dir, exist_ok=True)
-    for name, look in (("boy", LOOK_BOY), ("girl", LOOK_GIRL)):
-        sheet(look, "walk").save(f"{out_dir}/{name}-walk-sheet.png")
-        sheet(look, "run").save(f"{out_dir}/{name}-run-sheet.png")
-
-    BACK = ("walk", UP, 0)
-    grid("hair-shapes", [{**LOOK_BOY, "hat": "none", "hair": h} for h in HAIRS] +
-         [{**LOOK_GIRL, "hat": "none", "hair": h} for h in HAIRS], poses=(FRONT, SIDE_RUN, BACK), cols=4)
-    grid("hats", options("hat", HATS), cols=4)
-    grid("tops", [{**l, "hat": "none"} for l in options("top", TOPS)], cols=4)
-    grid("scarf", options("scarf", (False, True)), cols=4)
-    grid("bottoms", [{**l, "top": "padded"} for l in options("bottoms", BOTTOMS)], cols=4)
-    grid("shoes", options("shoes", SHOES), cols=3)
-    grid("skin", options("skin", SKINS), cols=4)
-    grid("eyes", options("eyes", EYES), cols=4)
-    for part, key, values in (("top", "top_colour", COLOURS), ("hat", "hat_colour", COLOURS),
-                              ("bottoms", "bottoms_colour", COLOURS), ("shoes", "shoe_colour", COLOURS),
-                              ("hair", "hair_colour", HAIR_COLOURS)):
-        base = {**LOOK_BOY, "hat": "none"} if part == "hair" else LOOK_BOY
-        grid(f"colours-{part}", [{**base, key: v} for v in values], cols=10, poses=(FRONT,))
+    FRONT_BACK = (FRONT, SIDE_RUN, ("walk", UP, 0))
+    grid("hair-styles", [{**LOOK_BOY, "hat": "none", "hair": h} for h in HAIRS] +
+         [{**LOOK_GIRL, "hat": "none", "hair": h} for h in HAIRS], poses=FRONT_BACK, cols=4)
+    grid("hair-with-hats", [{**LOOK_GIRL, "hat": a, "hair": h} for h in HAIRS for a in HATS[1:]],
+         poses=(FRONT, ("walk", LEFT, 0)), cols=5)
+    grid("colours-hair", [{**LOOK_GIRL, "hat": "none", "hair_colour": v} for v in HAIR_COLOURS],
+         cols=10, poses=(FRONT,))
     print("options ->", out_dir)

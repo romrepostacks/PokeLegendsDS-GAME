@@ -1,21 +1,22 @@
 // Written by tools/art/make_look.py.
 #pragma once
 
-#define LOOK_LAYERS 28
+#define LOOK_LAYERS 36
 #define LOOK_FRAMES 17
 #define LOOK_SHADES 8
 #define LOOK_SWATCH_SHADE 5
 #define LOOK_RUN_FRAME 9
-#define LAYER_BODY 0
-#define LAYER_HEAD 13
-#define LAYER_SCARF 22
-#define LAYER_LEGS_UNDER 3
-#define LAYER_LEGS 1
-#define LAYER_FEET 4
-#define LAYER_BOTTOMS 7
-#define LAYER_TOP 9
-#define LAYER_HAIR 14
-#define LAYER_HAT 23
+#define LAYER_BODY 8
+#define LAYER_HEAD 21
+#define LAYER_SCARF 30
+#define LAYER_LEGS_UNDER 11
+#define LAYER_HAIRBACK 0
+#define LAYER_LEGS 9
+#define LAYER_FEET 12
+#define LAYER_BOTTOMS 15
+#define LAYER_TOP 17
+#define LAYER_HAIR 22
+#define LAYER_HAT 31
 
 #define SLOT_SKIN 0
 #define SLOT_EYES 1

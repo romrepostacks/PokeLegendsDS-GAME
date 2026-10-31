@@ -59,4 +59,40 @@ Prototype LPC previews in docs/art-review/character/lpc/ have their own CREDITS.
 
 ## Original player characters
 
-The hat, hair, scarf, long coat and jacket detail in tools/art/paint_character.py are original work for this game, drawn over LPC layers. The LPC layers they use are the body and head layers above plus: legs_cuffed, legs_leggings, feet_shoes_basic, feet_boots_basic, feet_boots_fold, torso_clothes_longsleeve2 and the human adult default eyes. Credits for those are listed in docs/art-review/character/lpc/CREDITS.md and in the LPC CREDITS.csv.
+The hat, scarf, long coat and jacket detail in tools/art/paint_character.py are original work for this game, drawn over LPC layers. The LPC layers they use are the body and head layers above plus: legs_cuffed, legs_leggings, feet_shoes_basic, feet_boots_basic, feet_boots_fold, torso_clothes_longsleeve2 and the human adult default eyes. Credits for those are listed in docs/art-review/character/lpc/CREDITS.md and in the LPC CREDITS.csv.
+
+## Player hair
+
+Hand-drawn LPC layers, recoloured. Layers are credited as that project lists them.
+
+### Parted 3 (`hair_parted3`)
+
+- `hair/parted3`: ElizaWy. Licences: OGA-BY 3.0. Source: https://github.com/ElizaWy/LPC/tree/main/Characters/Hair https://opengameart.org/content/lpc-expanded-sit-run-jump-more
+
+### Spiked (`hair_spiked`)
+
+- `hair/spiked`: kcilds/Rocetti/Eredah. Licences: CC-BY 4.0. Source: https://opengameart.org/content/eredah-rpg-character-base-48x64-ongoing https://opengameart.org/content/lpc-hair
+
+### XLong Wavy (`hair_xlong_wavy`)
+
+- `hair/xlong_wavy`: JaidynReiman, Nila122. Licences: OGA-BY 3.0. Source: https://opengameart.org/content/lpc-expanded-xlong-hair
+
+### High ponytail (`hair_high_ponytail`)
+
+- `hair/high_ponytail`: JaidynReiman, ElizaWy, bluecarrot16. Licences: OGA-BY 3.0. Source: https://opengameart.org/content/lpc-hair https://opengameart.org/content/lpc-expanded-hair
+
+### Shoulderr (`hair_shoulderr`)
+
+- `hair/shoulderr`: JaidynReiman, Lanea Zimmerman (Sharm), Manuel Riecke (MrBeast). Licences: OGA-BY 3.0, CC-BY-SA 3.0, GPL 3.0. Source: https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles https://github.com/jrconway3/Universal-LPC-spritesheet/commit/c32ce8a7edd9fc7fe7daa62a39cf64e5946020a2 https://opengameart.org/content/lpc-expanded-hair
+
+### Braid (`hair_braid`)
+
+- `hair/braid`: Nila122, ElizaWy. Licences: OGA-BY 3.0, CC-BY-SA 3.0, GPL 3.0, GPL 2.0. Source: https://opengameart.org/content/3-hairs-for-lpc https://opengameart.org/content/lpc-hair
+
+### Bob (`hair_bob`)
+
+- `hair/bob`: ElizaWy, bluecarrot16. Licences: CC0. Source: https://opengameart.org/content/lpc-hair https://github.com/ElizaWy/LPC/blob/main/Characters/Hair https://opengameart.org/content/lpc-expanded-sit-run-jump-more
+
+### Long straight (`hair_long_straight`)
+
+- `hair/long_straight`: JaidynReiman, thecilekli, bluecarrot16. Licences: CC0. Source: https://opengameart.org/content/lpc-long-straight-hair-with-12-colors https://opengameart.org/content/lpc-hair https://opengameart.org/content/lpc-expanded-hair
