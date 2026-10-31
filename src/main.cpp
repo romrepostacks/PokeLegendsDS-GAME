@@ -150,6 +150,10 @@ static const float TILE = 0.25f;
 // for now; it becomes a key item later). Also the sprite sheet's row blocks, see
 // tools/art/make_player.py.
 enum Mode { WALK, RUN, BIKE };
+// The player sprite sheet (tools/art/make_player.py). Feet sit on the bottom of the frame.
+static const int FRAME_W = 32, FRAME_H = 48, SHEET_COLS = 8;
+static const int MODE_POSES[] = { 5, 5, 3 };       // poses per direction: walk, run, bike
+static const int MODE_FIRST_CELL[] = { 0, 20, 40 };
 static const int STEP_FRAMES[] = { 16, 8, 4 }; // Black 2 timing: run is 2x walk, bike 4x
 
 enum Dir { DOWN, UP, LEFT, RIGHT };
@@ -248,12 +252,16 @@ static void draw_player(void)
         if (quarter < 3)
             frame = (player.foot == 1 ? 1 : 3) + (quarter == 1 ? 1 : 0);
     }
-    int u0 = frame * 32, v0 = (player.mode * 4 + player.dir) * 32;
+    int mode = player.mode, dir = player.dir;
 #ifdef TEST_POSE
     // Test builds only: show one sprite frame, for screenshots.
-    u0 = TEST_POSE * 32;
-    v0 = (TEST_MODE * 4 + TEST_DIR) * 32;
+    frame = TEST_POSE;
+    mode = TEST_MODE;
+    dir = TEST_DIR;
 #endif
+    // Cells run across the sheet, 8 to a row: see tools/art/make_player.py.
+    int cell = MODE_FIRST_CELL[mode] + dir * MODE_POSES[mode] + frame;
+    int u0 = (cell % SHEET_COLS) * FRAME_W, v0 = (cell / SHEET_COLS) * FRAME_H;
 
     NE_ViewPush();
     NE_ViewMove(px, 0, pz);
@@ -263,14 +271,14 @@ static void draw_player(void)
     // A 32x32 billboard leaning back to face the camera (about 39 degrees down).
     // Sized so one sprite pixel is one screen pixel at the game camera: any other scale
     // drops or doubles pixels unevenly, because the DS has no texture filtering.
-    const float w = 0.125f, h = 0.2425f, up = 0.78f, back = -0.63f;
+    const float w = 0.125f, h = 0.2425f * FRAME_H / 32.0f, up = 0.78f, back = -0.63f;
     NE_PolyBegin(GL_QUAD);
     NE_PolyColor(RGB15(31, 31, 31));
-    NE_PolyTexCoord(u0, v0 + 32);
+    NE_PolyTexCoord(u0, v0 + FRAME_H);
     NE_PolyVertex(-w, 0, 0);
-    NE_PolyTexCoord(u0 + 32, v0 + 32);
+    NE_PolyTexCoord(u0 + FRAME_W, v0 + FRAME_H);
     NE_PolyVertex(w, 0, 0);
-    NE_PolyTexCoord(u0 + 32, v0);
+    NE_PolyTexCoord(u0 + FRAME_W, v0);
     NE_PolyVertex(w, h * up, h * back);
     NE_PolyTexCoord(u0, v0);
     NE_PolyVertex(-w, h * up, h * back);
