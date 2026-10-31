@@ -18,6 +18,13 @@ Layers are credited as that project lists them. A layer offered under several li
 
 - `head/heads/human/male`: bluecarrot16, Benjamin K. Smith (BenCreating), Stephen Challener (Redshrike). Licences: OGA-BY 3.0, CC-BY-SA 3.0, GPL 3.0. Source: https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles https://opengameart.org/content/lpc-character-bases
 
+## Expression, Neutral, light
+
+- `head/faces`: JaidynReiman, ElizaWy, Stephen Challener (Redshrike). Licences: OGA-BY 3.0. Source: https://github.com/ElizaWy/LPC/tree/main/Characters/Head https://opengameart.org/content/ulpc-expanded-expressions
+- `head/faces/elderly/neutral`: JaidynReiman, ElizaWy, Stephen Challener (Redshrike). Licences: OGA-BY 3.0, CC-BY-SA 3.0, GPL 3.0. Source: https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles https://github.com/ElizaWy/LPC/tree/main/Characters/Head https://opengameart.org/content/ulpc-expanded-expressions
+- `head/faces/female/neutral`: JaidynReiman, Stephen Challener (Redshrike). Licences: OGA-BY 3.0, CC-BY-SA 3.0, GPL 3.0. Source: https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles https://opengameart.org/content/ulpc-expanded-expressions
+- `head/faces/male/neutral`: JaidynReiman, Stephen Challener (Redshrike). Licences: OGA-BY 3.0, CC-BY-SA 3.0, GPL 3.0. Source: https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles https://opengameart.org/content/ulpc-expanded-expressions
+
 ## Thick Eyebrows, light brown
 
 - `eyes/eyebrows/thick`: ElizaWy. Licences: OGA-BY 3.0. Source: https://github.com/ElizaWy/LPC/tree/main/Characters/Hair https://opengameart.org/content/lpc-expanded-sit-run-jump-more
@@ -49,7 +56,3 @@ Layers are credited as that project lists them. A layer offered under several li
 - `feet/accessory/plate_toe_thick`: JaidynReiman. Licences: OGA-BY 3.0+, CC-BY 3.0+, GPL 3.0. Source: https://opengameart.org/content/lpc-kimono-relm https://opengameart.org/content/lpc-expanded-socks-shoes
 
 Prototype LPC previews in docs/art-review/character/lpc/ have their own CREDITS.md there.
-
-## Neutral expression, light
-
-The neutral face is part of the head layer above, as the generator composes it.

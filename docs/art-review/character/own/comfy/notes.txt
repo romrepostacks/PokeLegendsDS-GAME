@@ -1,0 +1,12 @@
+ComfyUI pass using Kyle's LPC sheet as the pose base. Made locally on the Triton.
+
+Settings: sd_xl_base_1.0 with the pixel-art-xl LoRA at 0.9, img2img, dpmpp_2m karras, 26 steps, CFG 7, seed 5151. Input frames were upscaled 16x to 1024 on a flat background. No ControlNet model is installed. Prompts name no game or character. The results were scaled to 64x64, reduced to 40 colours, and masked to the original silhouette.
+
+before-after.png, before-after-x2.png: top row is the source frames, then boy, then girl, at denoise 0.5. Frames are idle down, up, left, right, then 2 walk, 2 run.
+source, boy, girl (.png and -x4.png): the same rows on their own.
+Result at 0.5: poses hold, but the design barely changes. It is still the grey-haired character, with muddier hair.
+
+concept-0.8/: six raw images at denoise 0.8. These are the good ones as designs: a boy in a red or grey hat and a padded jacket, a girl with blonde hair, a scarf and a teal coat.
+Result at 0.8: strong designs, but frames meant to be side views came out facing front, and hats and outfits change between frames. Not usable as animation.
+
+Conclusion: ComfyUI is good for choosing the design, not for making the frames. Options for the frames: paint our own layers over the LPC body frame by frame, or try a ControlNet model (a large download, not installed).
