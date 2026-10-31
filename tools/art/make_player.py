@@ -83,7 +83,62 @@ def cap(f, x0, x1, dy=0):
     f.ellipse(m - 1, 0 + dy, m + 2, 2 + dy, "W")
 
 
-BODY = "boy"   # or "girl": longer hair, lashes and a belted parka
+BODY = "boy"   # or "girl": narrower build, thin legs, A-line coat, two braids
+
+
+def braid(f, x, y):
+    """A braid hanging from under the cap, tied off near the end. This is what gives the
+    girl a different outline from every angle."""
+    f.rect(x, y, x + 1, y + 7, "H")
+    f.rect(x, y + 2, x + 1, y + 2, "s")
+    f.rect(x, y + 5, x + 1, y + 5, "s")
+    f.rect(x, y + 8, x + 1, y + 8, "G")
+    f.rect(x, y + 9, x + 1, y + 9, "H")
+
+
+HAIR = "braids"   # the girl's hair: "braids", "ponytail" or "bob"
+
+
+def hair_front(f, dy):
+    if HAIR == "braids":
+        braid(f, 9, 9 + dy)
+        braid(f, 21, 9 + dy)
+    elif HAIR == "ponytail":
+        f.rect(21, 3 + dy, 24, 5 + dy, "H")     # high tail sweeping out past the cap
+        f.rect(23, 5 + dy, 24, 12 + dy, "H")
+        f.rect(21, 3 + dy, 22, 3 + dy, "G")
+    else:
+        f.rect(9, 9 + dy, 11, 14 + dy, "H")     # wide bob, curling out at the jaw
+        f.rect(20, 9 + dy, 22, 14 + dy, "H")
+        f.rect(8, 13 + dy, 9, 14 + dy, "H")
+        f.rect(22, 13 + dy, 23, 14 + dy, "H")
+    f.rect(11, 9 + dy, 11, 13 + dy, "H")
+    f.rect(20, 9 + dy, 20, 13 + dy, "H")
+
+
+def hair_back(f, dy):
+    if HAIR == "braids":
+        braid(f, 9, 9 + dy)
+        braid(f, 21, 9 + dy)
+    elif HAIR == "ponytail":
+        f.rect(14, 3 + dy, 17, 5 + dy, "G")     # tie, then the tail down her back
+        f.rect(14, 9 + dy, 17, 19 + dy, "H")
+        f.rect(15, 20 + dy, 16, 21 + dy, "H")
+    else:
+        f.rect(9, 9 + dy, 22, 14 + dy, "H")
+        f.rect(8, 13 + dy, 23, 14 + dy, "H")
+
+
+def hair_side(f, dx, dy):
+    if HAIR == "braids":
+        braid(f, 18 + dx, 10 + dy)
+    elif HAIR == "ponytail":
+        f.rect(20 + dx, 3 + dy, 24 + dx, 5 + dy, "H")   # streams out behind her
+        f.rect(23 + dx, 5 + dy, 25 + dx, 11 + dy, "H")
+        f.rect(20 + dx, 3 + dy, 20 + dx, 5 + dy, "G")
+    else:
+        f.rect(16 + dx, 9 + dy, 21 + dx, 14 + dy, "H")
+        f.rect(19 + dx, 13 + dy, 22 + dx, 14 + dy, "H")
 
 
 def head_front(f, dy=0):
@@ -95,16 +150,16 @@ def head_front(f, dy=0):
     f.rect(13, 10 + dy, 13, 11 + dy, "o")
     f.rect(17, 10 + dy, 17, 11 + dy, "o")
     if BODY == "girl":
-        f.rect(10, 9 + dy, 11, 17 + dy, "H")    # hair down past the shoulders
-        f.rect(20, 9 + dy, 21, 17 + dy, "H")
-        f.rect(12, 10 + dy, 12, 10 + dy, "o")                 # lashes
+        hair_front(f, dy)
+        f.rect(12, 10 + dy, 12, 10 + dy, "o")   # lashes
         f.rect(18, 10 + dy, 18, 10 + dy, "o")
+        f.rect(15, 13 + dy, 16, 13 + dy, "s")   # small smile
 
 
 def head_back(f, dy=0):
     f.rect(11, 9 + dy, 20, 13 + dy, "H")
     if BODY == "girl":
-        f.rect(11, 14 + dy, 20, 18 + dy, "H")
+        hair_back(f, dy)
     cap(f, 11, 20, dy)
 
 
@@ -115,35 +170,41 @@ def head_side(f, dx=0, dy=0):
     cap(f, 11 + dx, 19 + dx, dy)
     f.rect(12 + dx, 10 + dy, 12 + dx, 11 + dy, "o")
     if BODY == "girl":
-        f.rect(16 + dx, 13 + dy, 19 + dx, 17 + dy, "H")
+        hair_side(f, dx, dy)
         f.rect(11 + dx, 10 + dy, 11 + dx, 10 + dy, "o")
 
 
 def torso_front(f, back, dy=0, bottom=22):
-    f.rect(11, 15 + dy, 20, bottom + dy, "R")
-    f.rect(18, 15 + dy, 20, bottom + dy, "r")
-    if BODY == "girl":
-        f.rect(12, 19 + dy, 19, 19 + dy, "r")      # belted waist
-        f.rect(10, bottom + dy, 21, bottom + dy, "R")  # flared hem
-    f.rect(11, 16 + dy, 11, bottom - 1 + dy, "o")  # seams keep the arms readable
-    f.rect(20, 16 + dy, 20, bottom - 1 + dy, "o")
+    girl = BODY == "girl"
+    x0, x1 = (12, 19) if girl else (11, 20)
+    f.rect(x0, 15 + dy, x1, bottom + dy, "R")
+    f.rect(x1 - 2, 15 + dy, x1, bottom + dy, "r")
+    if girl and bottom == 22:
+        f.rect(11, 22 + dy, 20, 23 + dy, "R")      # A-line coat, longer and flared
+        f.rect(10, 24 + dy, 21, 24 + dy, "R")
+        f.rect(18, 22 + dy, 21, 24 + dy, "r")
+        f.rect(12, 19 + dy, 19, 19 + dy, "o")      # belt
+    f.rect(x0, 16 + dy, x0, bottom - 1 + dy, "o")  # seams keep the arms readable
+    f.rect(x1, 16 + dy, x1, bottom - 1 + dy, "o")
     if back:
-        f.rect(12, 15 + dy, 19, 21 + dy, "P")
-        f.rect(17, 15 + dy, 19, 21 + dy, "p")
-        f.rect(12, 15 + dy, 19, 16 + dy, "p")
-        f.rect(11, 14 + dy, 20, 14 + dy, "W")
+        f.rect(x0 + 1, 15 + dy, x1 - 1, 21 + dy, "P")
+        f.rect(x1 - 3, 15 + dy, x1 - 1, 21 + dy, "p")
+        f.rect(x0 + 1, 15 + dy, x1 - 1, 16 + dy, "p")
+        f.rect(x0, 14 + dy, x1, 14 + dy, "W")
     else:
         f.rect(15, 16 + dy, 15, bottom + dy, "r")
-        f.rect(12, 15 + dy, 12, 19 + dy, "P")
-        f.rect(19, 15 + dy, 19, 19 + dy, "p")
-        f.rect(11, 14 + dy, 20, 15 + dy, "W")
-        f.rect(18, 14 + dy, 20, 15 + dy, "w")
+        f.rect(x0 + 1, 15 + dy, x0 + 1, 19 + dy, "P")
+        f.rect(x1 - 1, 15 + dy, x1 - 1, 19 + dy, "p")
+        f.rect(x0, 14 + dy, x1, 15 + dy, "W")
+        f.rect(x1 - 2, 14 + dy, x1, 15 + dy, "w")
 
 
 def arm_front(f, side, top, bottom):
     """A sleeve on the left (side=-1) or right (+1) of the body, mitten at the bottom.
     Moving the bottom up or down is what makes the swing visible from the front."""
     x0 = 8 if side < 0 else 21
+    if BODY == "girl":
+        x0 += 1 if side < 0 else -1
     lit, shade = ("R", "r") if side < 0 else ("r", "R")
     inner = x0 + 2 if side < 0 else x0
     f.rect(x0, top, x0 + 2, bottom - 2, lit)
@@ -152,6 +213,13 @@ def arm_front(f, side, top, bottom):
 
 
 def legs_front(f, lift_l, lift_r, top=23):
+    if BODY == "girl":   # thin legs under the long coat, with a clear gap
+        top = max(top, 24)
+        f.rect(13, top, 14, 28 - lift_l, "N")
+        f.rect(17, top, 18, 28 - lift_r, "N")
+        f.rect(12, 29 - lift_l, 14, 30 - lift_l, "B")
+        f.rect(17, 29 - lift_r, 19, 30 - lift_r, "B")
+        return
     f.rect(12, top, 14, 28 - lift_l, "N")
     f.rect(17, top, 19, 28 - lift_r, "N")
     f.rect(12, 29 - lift_l, 14, 30 - lift_l, "B")
@@ -176,12 +244,18 @@ def arm_side(f, x, top, bottom, bent=False):
 def body_side(f, dx=0, dy=0, bottom=22):
     f.rect(18 + dx, 15 + dy, 21 + dx, 21 + dy, "P")
     f.rect(20 + dx, 15 + dy, 21 + dx, 21 + dy, "p")
+    if BODY == "girl":
+        f.rect(13 + dx, 15 + dy, 18 + dx, 21 + dy, "R")
+        f.rect(17 + dx, 15 + dy, 18 + dx, 21 + dy, "r")
+        f.rect(12 + dx, 22 + dy, 19 + dx, 23 + dy, "R")   # A-line coat
+        f.rect(11 + dx, 24 + dy, 20 + dx, 24 + dy, "R")
+        f.rect(17 + dx, 22 + dy, 20 + dx, 24 + dy, "r")
+        f.rect(13 + dx, 19 + dy, 18 + dx, 19 + dy, "o")   # belt
+        f.rect(13 + dx, 14 + dy, 18 + dx, 15 + dy, "W")
+        return
     f.rect(12 + dx, 15 + dy, 18 + dx, bottom + dy, "R")
     f.rect(17 + dx, 15 + dy, 18 + dx, bottom + dy, "r")
     f.rect(12 + dx, 14 + dy, 18 + dx, 15 + dy, "W")
-    if BODY == "girl":
-        f.rect(12 + dx, 19 + dy, 18 + dx, 19 + dy, "r")
-        f.rect(11 + dx, bottom + dy, 19 + dx, bottom + dy, "R")
 
 
 # --- Walk and run ------------------------------------------------------------------
@@ -214,7 +288,7 @@ def limb_leg(f, hip, foot, top, lift, far=False):
     """A leg from the hip to the foot. The far leg is near-black, so the eye can tell
     the two legs apart and see them alternate."""
     ankle = 28 - lift
-    line(f, hip, top, foot, ankle, 3, "o" if far else "N")
+    line(f, hip, top, foot, ankle, 2 if BODY == "girl" else 3, "o" if far else "N")
     f.rect(foot - 1, ankle + 1, foot + 2, ankle + 2, "B")
 
 

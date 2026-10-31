@@ -1,4 +1,4 @@
-# Art review previews for the character creator: boy and girl, with sample colour swaps.
+# Art review previews for the character creator: boy and girl, and every colour option.
 # Colours are swapped the way the game will swap them, by replacing palette entries.
 #
 #   python tools/art/preview_character.py OUT_DIR
@@ -9,44 +9,66 @@ import sys
 from PIL import Image
 
 import make_player
+from colour_options import COLOURS
 
-FAMILIES = {   # palette keys: base colour, shade
-    "top": ("R", "r"), "hat": ("G", "g"), "bottoms": ("N",), "shoes": ("B",), "hair": ("H",),
-}
-LOOKS = {
-    "default": {},
-    "blue": {"top": [(70, 120, 200), (44, 80, 150)], "hat": [(240, 200, 80), (190, 150, 50)],
-             "bottoms": [(90, 74, 66)], "shoes": [(60, 60, 70)], "hair": [(40, 34, 40)]},
-    "pink": {"top": [(232, 120, 160), (180, 80, 120)], "hat": [(120, 90, 190), (84, 60, 150)],
-             "bottoms": [(70, 80, 120)], "shoes": [(200, 200, 210)], "hair": [(200, 150, 70)]},
-}
+BASE_PAL = dict(make_player.PAL)
+PARTS = {"top": ("R", "r"), "hat": ("G", "g"), "bottoms": ("N", None), "shoes": ("B", None),
+         "hair": ("H", None)}
+GREY = (200, 208, 220, 255)
 
 
-def sheet(body, look):
+def frames():
+    p = make_player
+    return [p.walk_down(0), p.walk_down(0, back=True), p.walk_left(0), p.walk_left(1),
+            p.walk_down(1), p.run_left(1), p.run_left(-1)]
+
+
+def strip(body, pal=None):
     make_player.BODY = body
-    pal = dict(BASE_PAL)
-    for part, colours in LOOKS[look].items():
-        for key, colour in zip(FAMILIES[part], colours):
-            pal[key] = colour
     make_player.PAL.clear()
-    make_player.PAL.update(pal)
-    frames = [make_player.walk_down(0), make_player.walk_down(0, back=True), make_player.walk_left(0),
-              make_player.walk_left(1), make_player.run_left(1), make_player.run_left(-1)]
-    out = Image.new("RGBA", (32 * len(frames), 32), (200, 208, 220, 255))
-    for i, f in enumerate(frames):
-        img = make_player.to_image(f)
-        out.alpha_composite(img, (i * 32, 0))
+    make_player.PAL.update(pal or BASE_PAL)
+    fs = frames()
+    out = Image.new("RGBA", (32 * len(fs), 32), GREY)
+    for i, f in enumerate(fs):
+        out.alpha_composite(make_player.to_image(f), (i * 32, 0))
     return out
 
 
-BASE_PAL = dict(make_player.PAL)
+def swapped(part, option):
+    pal = dict(BASE_PAL)
+    base, shade = PARTS[part]
+    pal[base] = option[0]
+    if shade:
+        pal[shade] = option[1]
+    return pal
+
+
+def x4(img):
+    return img.resize((img.width * 4, img.height * 4), Image.NEAREST)
+
+
 out_dir = sys.argv[1]
 os.makedirs(out_dir, exist_ok=True)
-rows = [(b, l) for b in ("boy", "girl") for l in LOOKS]
-board = Image.new("RGBA", (32 * 6, 34 * len(rows)), (255, 255, 255, 255))
-for i, (body, look) in enumerate(rows):
-    s = sheet(body, look)
-    s.resize((s.width * 4, s.height * 4), Image.NEAREST).save(f"{out_dir}/{body}-{look}.png")
-    board.alpha_composite(s, (0, i * 34))
-board.resize((board.width * 4, board.height * 4), Image.NEAREST).save(f"{out_dir}/overview.png")
+boy = strip("boy")
+x4(boy).save(f"{out_dir}/boy.png")
+for tag, hair in (("a-braids", "braids"), ("b-ponytail", "ponytail"), ("c-bob", "bob")):
+    make_player.HAIR = hair
+    girl = strip("girl")
+    x4(girl).save(f"{out_dir}/girl-{tag}.png")
+    both = Image.new("RGBA", (boy.width, 66), (255, 255, 255, 255))
+    both.paste(boy, (0, 0))
+    both.paste(girl, (0, 34))
+    x4(both).save(f"{out_dir}/girl-{tag}-vs-boy.png")
+
+make_player.HAIR = "braids"
+sheet = Image.new("RGBA", (10 + 34 * 30, 34 * len(PARTS)), (255, 255, 255, 255))
+for row, part in enumerate(PARTS):
+    for i, option in enumerate(COLOURS):
+        make_player.BODY = "girl" if part == "hair" else "boy"
+        make_player.PAL.clear()
+        make_player.PAL.update(swapped(part, option))
+        tile = Image.new("RGBA", (32, 32), GREY)
+        tile.alpha_composite(make_player.to_image(make_player.walk_down(0)))
+        sheet.paste(tile, (10 + i * 34, row * 34))
+sheet.resize((sheet.width * 2, sheet.height * 2), Image.NEAREST).save(f"{out_dir}/palettes.png")
 print("previews ->", out_dir)

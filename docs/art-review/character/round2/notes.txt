@@ -1,0 +1,8 @@
+Columns in every strip: front, back, side, side walk, front walk, run stride 1, run stride 2. All 4x.
+boy.png: approved boy, for reference.
+girl-a-braids.png, girl-a-braids-vs-boy.png: twin braids hanging past the shoulders, tied with green.
+girl-b-ponytail.png, girl-b-ponytail-vs-boy.png: high ponytail streaming out behind the cap.
+girl-c-bob.png, girl-c-bob-vs-boy.png: wide bob curling out at the jaw.
+All three share a narrower build, thin legs with a gap, and a longer belted A-line coat. Girl run and walk use the same timing as the boy.
+palettes.png: 30 colour options, 2x. Rows top to bottom: top, hat, bottoms, shoes, hair (on the girl). Options are 12 hues in strong and soft, plus 6 neutrals. Skin stays at 4.
+Unsure: the ponytail does not swing yet between frames; it would need its own swing frames in the run. Shoes show few pixels at this size, so shoe colour changes are subtle.
