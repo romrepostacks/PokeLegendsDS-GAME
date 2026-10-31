@@ -38,7 +38,7 @@ BOY_FRONT = """
 .ooHHHHHHHHHHHHHHoo.
 ..oHSSSSSSSSSSSSHo..
 ..oHSoWSSSSSSWoSHo..
-..oSSooSSSSSSooSso..
+..oSSoaSSSSSSaoSso..
 ...oSSSSSssSSSSso...
 ....oosSSSSSSsoo....
 ......oooooooo......
@@ -72,7 +72,7 @@ oaaaaaaaaaaaaAAaao..
 ...oSHHHHHHHHHHHHHo.
 ..oSSSSHHHHHHHHHHo..
 ..oSoWSSSHHhHHHHHo..
-..oSooSSSSHHHHHhoo..
+..oSoaSSSSHHHHHhoo..
 ...oSSSSSSSHHHho....
 ....oosSSSSsooo.....
 ......oooooo........
@@ -89,7 +89,7 @@ GIRL_FRONT = """
 .oHHHHSSHHHHSSHHHoHHHHo
 .oHHSSSSSSSSSSSHHoHHhHo
 .oHSSoWSSSSSSWoSHoHHHHo
-.oHSSooSSSSSSooSHoHHhHo
+.oHSSoaSSSSSSaoSHoHHhHo
 .oHhSSSSSssSSSShHooHHo.
 ..oohSSSSSSSSShoo..oHHo
 ....oooooooooooo....oo.
@@ -123,7 +123,7 @@ GIRL_SIDE = """
 .oHHSSHHHHHHHHHHoHHHHHo
 ..oSSSSHHHHHHHHHoHHhHo.
 ..oSoWSSSHHhHHHHooHHHo.
-..oSooSSSSHHHHhHo.oHHo.
+..oSoaSSSSHHHHhHo.oHHo.
 ...oSSSSSSSHHhho..oHo..
 ....oosSSSSoooo....oo..
 ......oooooo...........
