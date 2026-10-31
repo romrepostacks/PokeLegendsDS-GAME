@@ -56,3 +56,7 @@ Layers are credited as that project lists them. A layer offered under several li
 - `feet/accessory/plate_toe_thick`: JaidynReiman. Licences: OGA-BY 3.0+, CC-BY 3.0+, GPL 3.0. Source: https://opengameart.org/content/lpc-kimono-relm https://opengameart.org/content/lpc-expanded-socks-shoes
 
 Prototype LPC previews in docs/art-review/character/lpc/ have their own CREDITS.md there.
+
+## Original player characters
+
+The hat, hair, scarf, long coat and jacket detail in tools/art/paint_character.py are original work for this game, drawn over LPC layers. The LPC layers they use are the body and head layers above plus: legs_cuffed, legs_leggings, feet_shoes_basic, feet_boots_basic, torso_clothes_longsleeve2 and the human adult default eyes. Credits for those are listed in docs/art-review/character/lpc/CREDITS.md and in the LPC CREDITS.csv.
