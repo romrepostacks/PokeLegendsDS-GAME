@@ -59,4 +59,4 @@ Prototype LPC previews in docs/art-review/character/lpc/ have their own CREDITS.
 
 ## Original player characters
 
-The hat, hair, scarf, long coat and jacket detail in tools/art/paint_character.py are original work for this game, drawn over LPC layers. The LPC layers they use are the body and head layers above plus: legs_cuffed, legs_leggings, feet_shoes_basic, feet_boots_basic, torso_clothes_longsleeve2 and the human adult default eyes. Credits for those are listed in docs/art-review/character/lpc/CREDITS.md and in the LPC CREDITS.csv.
+The hat, hair, scarf, long coat and jacket detail in tools/art/paint_character.py are original work for this game, drawn over LPC layers. The LPC layers they use are the body and head layers above plus: legs_cuffed, legs_leggings, feet_shoes_basic, feet_boots_basic, feet_boots_fold, torso_clothes_longsleeve2 and the human adult default eyes. Credits for those are listed in docs/art-review/character/lpc/CREDITS.md and in the LPC CREDITS.csv.
