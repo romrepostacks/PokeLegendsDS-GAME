@@ -28,6 +28,12 @@ for name, look in (("boy", LOOK_BOY), ("girl", LOOK_GIRL)):
         frames = [x(on_grey(look, row, p), 3).convert("P") for p in range(PHASES)]
         frames[0].save(f"{out_dir}/{name}-{NAMES[row]}.gif", save_all=True, append_images=frames[1:],
                        duration=120, loop=0)
+    # Walking next to the 4 bike frames, to check the legs match.
+    strip = Image.new("RGBA", (64 * (1 + PHASES), 64), GREY)
+    strip.alpha_composite(cell(look, "walk", DOWN, 0))
+    for phase in range(PHASES):
+        strip.alpha_composite(cell(look, "ride", DOWN, phase), ((phase + 1) * 64, 0))
+    x(strip, 3).save(f"{out_dir}/compare-{name}.png")
     sheet.save(f"{out_dir}/{name}-1x.png")
     x(sheet, 3).save(f"{out_dir}/{name}-3x.png")
 print("bike ->", out_dir)
