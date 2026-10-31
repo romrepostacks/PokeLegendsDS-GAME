@@ -613,7 +613,7 @@ def ride_head_top(look, row):
     anim, f = pose
     area = (f * 64, row * 64, (f + 1) * 64, (row + 1) * 64)
     head_name = "heads_human_male" if look["body"] == "male" else "heads_human_female"
-    return box(layer(head_name, look["body"], anim, area, tuple(look["skin"])))[1] + ride_offsets(look, row)[3]
+    return box(layer(head_name, look["body"], anim, area, tuple(look["skin"])))[1] + ride_offsets(look, row)[1]
 
 
 def sheet(look, anim):

@@ -9,7 +9,7 @@ struct Look
 {
     u8 version;
     u8 body, hair, hat, top, scarf, bottoms, shoes;
-    u8 skin, eyes, hair_colour, hat_colour, top_colour, bottoms_colour, shoe_colour, scarf_colour;
+    u8 skin, eyes, hair_colour, hat_colour, top_colour, bottoms_colour, shoe_colour, scarf_colour, bike_colour;
 };
 
 void look_init(void);

@@ -4,7 +4,7 @@
 #define UI_TILE_PANEL 1
 #define UI_TILE_FONT 10
 #define UI_TILE_ICON 200
-#define UI_TILE_SWATCH 281
+#define UI_TILE_SWATCH 290
 #define BANK_TEXT 1
 #define BANK_GOLD_TEXT 2
 #define BANK_DARK_TEXT 3

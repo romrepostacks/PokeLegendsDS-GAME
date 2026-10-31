@@ -1,11 +1,14 @@
 // Written by tools/art/make_look.py.
 #pragma once
 
-#define LOOK_LAYERS 36
-#define LOOK_FRAMES 17
+#define LOOK_LAYERS 38
+#define LOOK_FRAMES 21
 #define LOOK_SHADES 8
 #define LOOK_SWATCH_SHADE 5
 #define LOOK_RUN_FRAME 9
+#define LOOK_RIDE_FRAME 17
+#define LAYER_BIKE_BACK 36
+#define LAYER_BIKE_FRONT 37
 #define LAYER_BODY 8
 #define LAYER_HEAD 21
 #define LAYER_SCARF 30
@@ -29,7 +32,9 @@
 #define SLOT_UNDER 8
 #define SLOT_SHOE 9
 #define SLOT_SCARF 10
-#define SLOT_COUNT 11
+#define SLOT_BIKE 11
+#define SLOT_METAL 12
+#define SLOT_COUNT 13
 
 #define RAMP_COLOURS 0
 #define RAMP_HAIR 30
@@ -41,6 +46,7 @@
 #define DEFAULT_BOTTOMS_COLOUR 0
 #define DEFAULT_SHOE_COLOUR 28
 #define DEFAULT_SCARF_COLOUR 10
+#define DEFAULT_BIKE_COLOUR 0
 #define DEFAULT_HAIR_COLOUR 3
 #define COUNT_COLOURS 30
 #define COUNT_SKIN 8

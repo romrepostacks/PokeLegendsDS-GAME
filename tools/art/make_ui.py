@@ -119,7 +119,7 @@ for c in range(32, 127):
     from_image(im, 0, 8)
 
 
-# Tab icons, 3x3 tiles: body, hair, hat, top, scarf, legs, shoes, skin, eyes.
+# Tab icons, 3x3 tiles: body, hair, hat, top, scarf, legs, shoes, skin, eyes, bike.
 def icon(d, x, y, k):
     col = 1
     if k == 0:
@@ -147,13 +147,17 @@ def icon(d, x, y, k):
         d.rectangle((x + 2, y + 7, x + 11, y + 11), fill=col)
     elif k == 7:
         d.ellipse((x + 1, y + 1, x + 10, y + 10), fill=col)
+    elif k == 9:
+        d.ellipse((x - 1, y + 4, x + 5, y + 10), outline=col)
+        d.ellipse((x + 6, y + 4, x + 12, y + 10), outline=col)
+        d.line((x + 2, y + 7, x + 5, y + 2, x + 9, y + 7), fill=col)
     elif k == 8:
         d.ellipse((x, y + 3, x + 11, y + 9), fill=col)
         d.ellipse((x + 4, y + 4, x + 7, y + 8), fill=0)
 
 
 ICON_TILE = len(tiles)
-for k in range(9):
+for k in range(10):
     im = Image.new("P", (24, 24), 0)
     icon(ImageDraw.Draw(im), 6, 6, k)
     for y in range(3):

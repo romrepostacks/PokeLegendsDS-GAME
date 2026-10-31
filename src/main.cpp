@@ -29,7 +29,7 @@ struct SaveData
 };
 
 static const u32 SAVE_MAGIC = 0x32533942; // "B9S2"
-static const u8 LOOK_VERSION = 1;
+static const u8 LOOK_VERSION = 2;
 
 enum class Backend { None, File, Cart };
 
@@ -167,6 +167,7 @@ struct Player
     int dir;
     int step;    // frames left in the current step, 0 when standing
     int foot;    // which foot leads this step: walk frame 1 or 2
+    int pedal;   // bike pedal phase, one turn every 4 tiles
     int mode;    // Mode of the current step
     bool bike;   // riding the bike
 };
@@ -230,6 +231,7 @@ static void player_update(u32 held, u32 down)
     player.ty = ny;
     player.step = STEP_FRAMES[player.mode];
     player.foot = player.foot == 1 ? 2 : 1;
+    player.pedal = (player.pedal + 1) % 4;
 }
 
 // Where the player is drawn this frame: between the previous and the current tile.
@@ -278,12 +280,16 @@ static void draw_npc(void)
 }
 
 // Picks this frame's sprite. Two steps play the sheet's 8-frame cycle, four frames to a tile.
-// The bike uses the walk frames, played faster, until it has art of its own.
+// On the bike the pedals turn with the wheels and stop at phase 0.
 static void player_compose(const Look *look)
 {
     static const int ROWS[] = { 2, 0, 1, 3 }; // DOWN, UP, LEFT, RIGHT
     int frame = 0;
-    if (player.step > 0)
+    if (player.bike)
+    {
+        frame = LOOK_RIDE_FRAME + (player.step > 0 ? player.pedal : 0);
+    }
+    else if (player.step > 0)
     {
         int len = STEP_FRAMES[player.mode];
         int quarter = (len - player.step) * 4 / len;

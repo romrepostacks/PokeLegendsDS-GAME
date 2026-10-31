@@ -54,6 +54,7 @@ void look_default(Look *look)
     look->bottoms_colour = DEFAULT_BOTTOMS_COLOUR;
     look->shoe_colour = DEFAULT_SHOE_COLOUR;
     look->scarf_colour = DEFAULT_SCARF_COLOUR;
+    look->bike_colour = DEFAULT_BIKE_COLOUR;
 }
 
 NE_Material *look_material(void)
@@ -81,6 +82,8 @@ void look_apply(const Look *look)
     set_slot(SLOT_UNDER, RAMP_FIXED + 3);
     set_slot(SLOT_SHOE, RAMP_COLOURS + look->shoe_colour);
     set_slot(SLOT_SCARF, RAMP_COLOURS + look->scarf_colour);
+    set_slot(SLOT_BIKE, RAMP_COLOURS + look->bike_colour);
+    set_slot(SLOT_METAL, RAMP_FIXED + 4);
     new_colours = true;
 }
 
@@ -110,6 +113,9 @@ void look_compose(const Look *look, int row, int frame)
     int clip = 0;
     if (look->hat != HAT_NONE && look->hat <= HAT_CAP)
         clip = look_clips_bin[(body * 4 + row) * LOOK_FRAMES + frame];
+    bool riding = frame >= LOOK_RIDE_FRAME;
+    if (riding)
+        blit(body, LAYER_BIKE_BACK, row, frame);
     if (look->hat != HAT_HOOD)
         blit(body, LAYER_HAIRBACK + look->hair, row, frame, clip);
     blit(body, LAYER_BODY, row, frame);
@@ -126,6 +132,8 @@ void look_compose(const Look *look, int row, int frame)
         blit(body, LAYER_SCARF, row, frame);
     if (look->hat != HAT_NONE)
         blit(body, LAYER_HAT + look->hat - 1, row, frame);
+    if (riding)
+        blit(body, LAYER_BIKE_FRONT, row, frame);
     new_pixels = true;
 }
 
@@ -182,6 +190,7 @@ static const Tab TABS[] = {
     { "SHOES", SHOE_NAMES, 3, FIELD(shoes), FIELD(shoe_colour), RAMP_COLOURS, COUNT_COLOURS, 34 },
     { "SKIN", NULL, 0, 0, FIELD(skin), RAMP_SKIN, COUNT_SKIN, 0 },
     { "EYES", NULL, 0, 0, FIELD(eyes), RAMP_EYES, COUNT_EYES, 0 },
+    { "BIKE", NULL, 0, 0, FIELD(bike_colour), RAMP_COLOURS, COUNT_COLOURS, 0 },
 };
 static const int TAB_COUNT = sizeof(TABS) / sizeof(TABS[0]);
 
@@ -202,6 +211,7 @@ static void randomise(Look *look)
     look->bottoms_colour = rand() % COUNT_COLOURS;
     look->shoe_colour = rand() % COUNT_COLOURS;
     look->scarf_colour = rand() % COUNT_COLOURS;
+    look->bike_colour = rand() % COUNT_COLOURS;
 }
 
 // The controls work on items, apart from the drawing below. Each tab's items run in order:
@@ -245,7 +255,7 @@ static bool creator_pick(Look *look, const Creator *c, int item)
 
 // The screen is laid out in 8-pixel cells, shifted to centre 31 columns and 22 rows.
 static const int SHIFT = 4, SHIFT_Y = 8, COLUMNS = 31;
-static const int TAB_X = 2, TAB_W = 3, TITLE_ROW = 3, GRID_ROW = 5, TILE_W = 7, TILE_H = 6, TILE_PITCH = 8;
+static const int TAB_X = 0, TAB_W = 3, TITLE_ROW = 3, GRID_ROW = 5, TILE_W = 7, TILE_H = 6, TILE_PITCH = 8;
 static const int STRIP_ROW = 17, STRIP_X = 2, STRIP_SHOWN = 14, BUTTON_ROW = 20;
 static const int RANDOM_END = 10, BACK_END = 17;
 static const int MAP_TEXT = 14, MAP_PANELS = 15;
