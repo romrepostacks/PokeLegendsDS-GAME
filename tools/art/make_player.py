@@ -191,11 +191,11 @@ def limb_arm(f, sx, sy, hx, hy, sleeve, outline=True):
     f.rect(hx, hy + 1, hx + 1, hy + 2, "N")
 
 
-def limb_leg(f, hip, foot, top, lift, trouser):
-    """A leg from the hip to the foot. The far leg uses a darker colour, so the eye can
-    tell the two legs apart and see them alternate."""
+def limb_leg(f, hip, foot, top, lift, far=False):
+    """A leg from the hip to the foot. The far leg is near-black, so the eye can tell
+    the two legs apart and see them alternate."""
     ankle = 28 - lift
-    line(f, hip, top, foot, ankle, 3, trouser)
+    line(f, hip, top, foot, ankle, 3, "o" if far else "N")
     f.rect(foot - 1, ankle + 1, foot + 2, ankle + 2, "B")
 
 
@@ -222,8 +222,8 @@ def walk_down(q, back=False):
 def walk_left(q):
     f = Frame()
     limb_arm(f, 16, 16, 16 - round(q * 3), 20, "r", outline=False)   # far arm, behind
-    limb_leg(f, 14, 14 + round(q * 3), 23, 0, "p")                   # far leg
-    limb_leg(f, 14, 14 - round(q * 3), 23, 0, "N")                   # near leg
+    limb_leg(f, 14, 14 + round(q * 3), 23, 0, far=True)                   # far leg
+    limb_leg(f, 14, 14 - round(q * 3), 23, 0)                   # near leg
     body_side(f)
     limb_arm(f, 14, 16, 14 + round(q * 3), 20, "r")                  # near arm
     head_side(f)
@@ -247,8 +247,8 @@ def run_left(q):
     dy = -1 if abs(q) == 1 else 0   # up off the ground at full stride
     reach = round(q * 4)
     limb_arm(f, 15, 16 + dy, 15 - round(q * 3), 19 + dy, "r", outline=False)
-    limb_leg(f, 13, 13 + reach, 22 + dy, 2 if q > 0 else 0, "p")     # the trailing foot lifts
-    limb_leg(f, 13, 13 - reach, 22 + dy, 2 if q < 0 else 0, "N")
+    limb_leg(f, 13, 13 + reach, 22 + dy, 2 if q > 0 else 0, far=True)     # the trailing foot lifts
+    limb_leg(f, 13, 13 - reach, 22 + dy, 2 if q < 0 else 0)
     body_side(f, -1, dy)
     limb_arm(f, 14, 16 + dy, 14 + round(q * 3), 19 + dy, "r")        # bent, pumping
     head_side(f, -2, dy)                                             # leaning into the run
