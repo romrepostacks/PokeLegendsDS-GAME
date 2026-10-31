@@ -222,17 +222,31 @@ struct Creator
     int cursor;  // item the d-pad is on
 };
 
-static int item_count(const Tab &t)
-{
-    return t.name_count + t.swatch_count + 2;
-}
-
 static void open_tab(Creator *c, const Look *look, int tab)
 {
     c->tab = (tab + TAB_COUNT) % TAB_COUNT;
     const Tab &t = TABS[c->tab];
     const u8 *fields = (const u8 *)look;
-    c->cursor = t.name_count ? fields[t.shape] : fields[t.colour];
+    // Tabs with only colours open on Random, so left and right can keep changing tabs.
+    c->cursor = t.name_count ? fields[t.shape] : t.swatch_count;
+}
+
+// Up and down: each shape is a stop, the whole colour strip is one, then Random and Confirm.
+static void cursor_step(Creator *c, const Look *look, int step)
+{
+    const Tab &t = TABS[c->tab];
+    int stops = t.name_count + (t.swatch_count ? 1 : 0) + 2;
+    bool on_strip = c->cursor >= t.name_count && c->cursor < t.name_count + t.swatch_count;
+    int at = c->cursor < t.name_count ? c->cursor
+             : on_strip              ? t.name_count
+                                     : c->cursor - t.swatch_count + (t.swatch_count ? 1 : 0);
+    at = (at + step + stops) % stops;
+    if (at < t.name_count)
+        c->cursor = at;
+    else if (t.swatch_count && at == t.name_count)
+        c->cursor = t.name_count + ((const u8 *)look)[t.colour];
+    else
+        c->cursor = at + t.swatch_count - (t.swatch_count ? 1 : 0);
 }
 
 // Returns true when the player confirmed.
@@ -578,7 +592,9 @@ void creator_run(Look *look)
             next_press++;
         }
 #endif
-        int count = item_count(TABS[c.tab]);
+        const Tab &tab = TABS[c.tab];
+        int colour = c.cursor - tab.name_count;
+        bool on_strip = colour >= 0 && colour < tab.swatch_count;
         bool changed = true;
         if (down & KEY_TOUCH)
         {
@@ -593,14 +609,19 @@ void creator_run(Look *look)
                 confirmed = creator_pick(look, &c, item);
             }
         }
+        else if (on_strip && (repeat & (KEY_LEFT | KEY_RIGHT)))
+        {
+            c.cursor = tab.name_count + (colour + (repeat & KEY_LEFT ? -1 : 1) + tab.swatch_count) % tab.swatch_count;
+            creator_pick(look, &c, c.cursor); // the trainer shows the colour straight away
+        }
         else if (repeat & KEY_LEFT)
             open_tab(&c, look, c.tab - 1);
         else if (repeat & KEY_RIGHT)
             open_tab(&c, look, c.tab + 1);
         else if (repeat & KEY_UP)
-            c.cursor = (c.cursor + count - 1) % count;
+            cursor_step(&c, look, -1);
         else if (repeat & KEY_DOWN)
-            c.cursor = (c.cursor + 1) % count;
+            cursor_step(&c, look, 1);
         else if (down & KEY_A)
             confirmed = creator_pick(look, &c, c.cursor);
         else if (down & KEY_B)
