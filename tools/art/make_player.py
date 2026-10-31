@@ -3,11 +3,12 @@
 #
 #   python tools/art/make_player.py art/sprites/player.png
 #
-# Sheet: 256x512, cells are 32x48 (see main() for the layout). Poses, by mode:
-#   walk and run: passing, half, full, half, full (the two legs alternate)
-#   bike: coast, pedal 1, pedal 2
-# Directions: down, up, left, right. Right is always the left row mirrored.
-# 15 colours + transparent, so it converts to a 4bpp (16 colour) DS texture.
+# Sheet: 256x512, frames are 32x32.
+#   Rows 0-3: walk  (down, up, left, right)  columns: passing, half, full, half, full
+#   Rows 4-7: run   (down, up, left, right)  columns as walk (the two legs alternate)
+#   Rows 8-11: bike (down, up, left, right)  columns: coast, pedal 1, pedal 2
+# Right is always the left row mirrored. 15 colours + transparent, so it converts to a
+# 4bpp (16 colour) DS texture.
 
 import sys
 
@@ -422,28 +423,23 @@ def to_image(frame, mirror=False):
     return img
 
 
-# Sheet layout, also used by draw_player() in src/main.cpp: cells run left to right, then
-# down, 8 to a row. Each mode is its four directions in turn, and each direction is its
-# poses in turn.
-CELL_W, CELL_H = 32, 48
-SHEET_COLS = 8
-
-
 def main(out):
     sheet = Image.new("RGBA", (256, 512), (0, 0, 0, 0))
     sets = [(walk_down, walk_left, STRIDES), (run_down, run_left, STRIDES),
             (bike_down, bike_left, (0, 1, 2))]
-    cell = 0
-    for down, left, poses in sets:
-        for draw, mirror in ((down, False), (lambda s: down(s, back=True), False),
-                             (left, False), (left, True)):
-            for pose in poses:
-                x, y = cell % SHEET_COLS * CELL_W, cell // SHEET_COLS * CELL_H
-                # The art is 32 tall for now, so it sits at the bottom of the cell.
-                sheet.paste(to_image(draw(pose), mirror), (x, y + CELL_H - 32))
-                cell += 1
+    for i, (down, left, poses) in enumerate(sets):
+        rows = [
+            [down(s) for s in poses],
+            [down(s, back=True) for s in poses],
+            [left(s) for s in poses],
+        ]
+        for r, frames in enumerate(rows):
+            for c, frame in enumerate(frames):
+                sheet.paste(to_image(frame), (c * 32, (i * 4 + r) * 32))
+        for c, frame in enumerate(rows[2]):
+            sheet.paste(to_image(frame, mirror=True), (c * 32, (i * 4 + 3) * 32))
     sheet.save(out)
-    print(f"player sheet -> {out} ({cell} frames)")
+    print(f"player sheet -> {out}")
 
 
 if __name__ == "__main__":
