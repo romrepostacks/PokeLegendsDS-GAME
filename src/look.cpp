@@ -8,6 +8,15 @@
 #include "look_clips_bin.h"
 #include "look_data.h"
 #include "look_ramps_bin.h"
+#include "ui_boy_pal_bin.h"
+#include "ui_boy_tex_bin.h"
+#include "ui_data.h"
+#include "ui_girl_pal_bin.h"
+#include "ui_girl_tex_bin.h"
+#include "ui_pal_bin.h"
+#include "ui_tiles_bin.h"
+#include "ui_top_pal_bin.h"
+#include "ui_top_tex_bin.h"
 
 // ---------------------------------------------------------------------------
 // Combining layers. The layer data is written by tools/art/make_look.py.
@@ -20,6 +29,7 @@ static NE_Palette *palette;
 static u8 pixels[FRAME_BYTES] __attribute__((aligned(32)));
 static u16 colours[256] __attribute__((aligned(32)));
 static bool new_pixels, new_colours;
+static u8 *target = pixels; // where look_compose draws
 
 // Option numbers that the rules below care about.
 enum { HAT_NONE = 0, HAT_CAP = 3, HAT_HOOD = 4, BOTTOMS_SHORTS = 2 };
@@ -88,14 +98,14 @@ static void blit(int body, int layer, int row, int frame, int clip_y = 0)
     {
         for (int x = x0; x < x0 + w; x++, src++)
             if (*src && y < 64 && y - FOOT_SHIFT >= clip_y)
-                pixels[y * 64 + x] = *src;
+                target[y * 64 + x] = *src;
     }
 }
 
 void look_compose(const Look *look, int row, int frame)
 {
     int body = look->body;
-    memset(pixels, 0, sizeof(pixels));
+    memset(target, 0, FRAME_BYTES);
     // Beanies and caps hide the hair on top of the head; the hood hides it all.
     int clip = 0;
     if (look->hat != HAT_NONE && look->hat <= HAT_CAP)
@@ -140,11 +150,10 @@ void look_upload(void)
 }
 
 // ---------------------------------------------------------------------------
-// The creator: the trainer turns and walks on the top screen, with touch tabs below.
-// The screen is 32x24 text cells, and a tap is worked out by cell.
+// The creator: the trainer on a snowy stage on the top screen, with touch tabs below.
 
 static const char *const HAIR_NAMES[] = { "Short", "Spiky", "Wavy", "High pony", "Side pony", "Braid", "Bob", "Long" };
-static const char *const HAT_NAMES[] = { "None", "Beanie", "Knit cap", "Ball cap", "Hood", "Earmuffs" };
+static const char *const HAT_NAMES[] = { "None", "Beanie", "Knit cap", "Ball cap", "Hood", "Earmuff" };
 static const char *const TOP_NAMES[] = { "Jacket", "Parka", "Vest", "Long coat" };
 static const char *const BOTTOM_NAMES[] = { "Trousers", "Leggings", "Shorts", "Skirt" };
 static const char *const SHOE_NAMES[] = { "Snow boots", "Tall boots", "Sneakers" };
@@ -154,31 +163,30 @@ static const char *const SCARF_NAMES[] = { "Off", "On" };
 struct Tab
 {
     const char *label;
-    int x, y;                    // label cell
     const char *const *names;    // shape choices, if any
     int name_count;
     size_t shape;                // Look field the shapes set
     size_t colour;               // Look field the swatches set, if swatch_count
     int ramp, swatch_count;
+    int preview_y;               // top row of the frame shown in the option tiles
 };
 
 #define FIELD(f) offsetof(Look, f)
 static const Tab TABS[] = {
-    { "Body", 1, 2, BODY_NAMES, 2, FIELD(body), 0, 0, 0 },
-    { "Hair", 7, 2, HAIR_NAMES, 8, FIELD(hair), FIELD(hair_colour), RAMP_HAIR, COUNT_COLOURS },
-    { "Hat", 13, 2, HAT_NAMES, 6, FIELD(hat), FIELD(hat_colour), RAMP_COLOURS, COUNT_COLOURS },
-    { "Top", 18, 2, TOP_NAMES, 4, FIELD(top), FIELD(top_colour), RAMP_COLOURS, COUNT_COLOURS },
-    { "Scarf", 23, 2, SCARF_NAMES, 2, FIELD(scarf), FIELD(scarf_colour), RAMP_COLOURS, COUNT_COLOURS },
-    { "Bottoms", 1, 4, BOTTOM_NAMES, 4, FIELD(bottoms), FIELD(bottoms_colour), RAMP_COLOURS, COUNT_COLOURS },
-    { "Shoes", 10, 4, SHOE_NAMES, 3, FIELD(shoes), FIELD(shoe_colour), RAMP_COLOURS, COUNT_COLOURS },
-    { "Skin", 17, 4, NULL, 0, 0, FIELD(skin), RAMP_SKIN, COUNT_SKIN },
-    { "Eyes", 23, 4, NULL, 0, 0, FIELD(eyes), RAMP_EYES, COUNT_EYES },
+    { "BODY", BODY_NAMES, 2, FIELD(body), 0, 0, 0, 4 },
+    { "HAIR", HAIR_NAMES, 8, FIELD(hair), FIELD(hair_colour), RAMP_HAIR, COUNT_COLOURS, 8 },
+    { "HAT", HAT_NAMES, 6, FIELD(hat), FIELD(hat_colour), RAMP_COLOURS, COUNT_COLOURS, 4 },
+    { "TOP", TOP_NAMES, 4, FIELD(top), FIELD(top_colour), RAMP_COLOURS, COUNT_COLOURS, 22 },
+    { "SCARF", SCARF_NAMES, 2, FIELD(scarf), FIELD(scarf_colour), RAMP_COLOURS, COUNT_COLOURS, 16 },
+    { "LEGS", BOTTOM_NAMES, 4, FIELD(bottoms), FIELD(bottoms_colour), RAMP_COLOURS, COUNT_COLOURS, 32 },
+    { "SHOES", SHOE_NAMES, 3, FIELD(shoes), FIELD(shoe_colour), RAMP_COLOURS, COUNT_COLOURS, 34 },
+    { "SKIN", NULL, 0, 0, FIELD(skin), RAMP_SKIN, COUNT_SKIN, 0 },
+    { "EYES", NULL, 0, 0, FIELD(eyes), RAMP_EYES, COUNT_EYES, 0 },
 };
 static const int TAB_COUNT = sizeof(TABS) / sizeof(TABS[0]);
 
 static void randomise(Look *look)
 {
-    u8 version = look->version;
     look->body = rand() % 2;
     look->hair = rand() % 8;
     look->hat = rand() % 6;
@@ -194,11 +202,10 @@ static void randomise(Look *look)
     look->bottoms_colour = rand() % COUNT_COLOURS;
     look->shoe_colour = rand() % COUNT_COLOURS;
     look->scarf_colour = rand() % COUNT_COLOURS;
-    look->version = version;
 }
 
-// The controls work on items, so a new skin only replaces the drawing below. Each tab's items
-// run in order: its shapes, its colours, Random, Confirm. Touch and the d-pad both end up here.
+// The controls work on items, apart from the drawing below. Each tab's items run in order:
+// its shapes, its colours, Random, Confirm. Touch and the d-pad both end up here.
 struct Creator
 {
     int tab;
@@ -214,7 +221,8 @@ static void open_tab(Creator *c, const Look *look, int tab)
 {
     c->tab = (tab + TAB_COUNT) % TAB_COUNT;
     const Tab &t = TABS[c->tab];
-    c->cursor = t.name_count ? ((const u8 *)look)[t.shape] : ((const u8 *)look)[t.colour];
+    const u8 *fields = (const u8 *)look;
+    c->cursor = t.name_count ? fields[t.shape] : fields[t.colour];
 }
 
 // Returns true when the player confirmed.
@@ -233,17 +241,76 @@ static bool creator_pick(Look *look, const Creator *c, int item)
     return false;
 }
 
-// --- Drawing and tap areas: the part a new skin replaces. ---
+// --- Drawing and tap areas: the Frost Night skin, art from tools/art/make_ui.py. ---
 
-static const int OPTIONS_ROW = 6, SWATCH_ROW = 15, BUTTON_ROW = 22;
-// Solid tiles past the console font, one per colour number in a palette bank. The console only
-// uses entry 15 of each bank, so entries 1-14 are free for swatches.
-static const int SOLID_TILE = 300, BANK_COLOURS = 14;
+// The screen is laid out in 8-pixel cells, shifted to centre 31 columns and 22 rows.
+static const int SHIFT = 4, SHIFT_Y = 8, COLUMNS = 31;
+static const int TAB_X = 2, TAB_W = 3, TITLE_ROW = 3, GRID_ROW = 5, TILE_W = 7, TILE_H = 6, TILE_PITCH = 8;
+static const int STRIP_ROW = 17, STRIP_X = 2, STRIP_SHOWN = 14, BUTTON_ROW = 20;
+static const int RANDOM_END = 10, BACK_END = 17;
+static const int MAP_TEXT = 14, MAP_PANELS = 15;
+static const int TAP_BACK = -2;
 
-static void swatch_cell(int x, int y, int i)
+static u16 *text_map(void) { return (u16 *)BG_MAP_RAM_SUB(MAP_TEXT); }
+static u16 *panel_map(void) { return (u16 *)BG_MAP_RAM_SUB(MAP_PANELS); }
+
+static void text(int x, int y, const char *s, int bank)
 {
-    u16 *map = (u16 *)BG_MAP_RAM_SUB(2);
-    map[y * 32 + x] = (SOLID_TILE + i % BANK_COLOURS) | ((1 + i / BANK_COLOURS) << 12);
+    u16 *map = text_map();
+    for (; *s; s++, x++)
+    {
+        int tile = UI_TILE_FONT + (*s - 32) * 2;
+        map[y * 32 + x] = tile | (bank << 12);
+        map[(y + 1) * 32 + x] = (tile + 1) | (bank << 12);
+    }
+}
+
+static void panel(int x, int y, int w, int h, int bank)
+{
+    u16 *map = panel_map();
+    for (int yy = 0; yy < h; yy++)
+    {
+        int row = yy == 0 ? 0 : yy == h - 1 ? 2 : 1;
+        for (int xx = 0; xx < w; xx++)
+        {
+            int col = xx == 0 ? 0 : xx == w - 1 ? 2 : 1;
+            map[(y + yy) * 32 + x + xx] = (UI_TILE_PANEL + row * 3 + col) | (bank << 12);
+        }
+    }
+}
+
+// Option tiles show the frame as sprites: 8bpp 64x32, the two screens' palettes kept the same.
+static const int SHOWN_ROWS = 32;
+static u16 *preview_gfx[8];
+static u8 preview_tiles[64 * SHOWN_ROWS] __attribute__((aligned(32)));
+static u8 preview_frame[FRAME_BYTES];
+
+static void draw_preview(const Look *look, int i, int top_row)
+{
+    u8 *saved = target;
+    target = preview_frame;
+    look_compose(look, 2, 0);
+    target = saved;
+    new_pixels = false;
+    // Sprites are stored as 8x8 tiles.
+    u8 *out = preview_tiles;
+    for (int ty = 0; ty < SHOWN_ROWS / 8; ty++)
+        for (int tx = 0; tx < 8; tx++)
+            for (int y = 0; y < 8; y++, out += 8)
+                memcpy(out, preview_frame + (top_row + ty * 8 + y) * 64 + tx * 8, 8);
+    DC_FlushRange(preview_tiles, sizeof(preview_tiles));
+    dmaCopy(preview_tiles, preview_gfx[i], sizeof(preview_tiles));
+}
+
+static int strip_first(const Look *look, const Creator *c)
+{
+    const Tab &t = TABS[c->tab];
+    bool on_strip = c->cursor >= t.name_count && c->cursor < t.name_count + t.swatch_count;
+    int shown = on_strip ? c->cursor - t.name_count : ((const u8 *)look)[t.colour];
+    int first = shown - STRIP_SHOWN / 2;
+    if (first > t.swatch_count - STRIP_SHOWN)
+        first = t.swatch_count - STRIP_SHOWN;
+    return first < 0 ? 0 : first;
 }
 
 static void creator_draw(const Look *look, const Creator *c)
@@ -251,95 +318,219 @@ static void creator_draw(const Look *look, const Creator *c)
     const Tab &t = TABS[c->tab];
     const u8 *fields = (const u8 *)look;
     const int random_item = t.name_count + t.swatch_count;
-    consoleClear();
-    printf("\x1b[0;1HCreate your trainer");
+    dmaFillHalfWords(0, text_map(), 2048);
+    dmaFillHalfWords(0, panel_map(), 2048);
+
     for (int i = 0; i < TAB_COUNT; i++)
     {
-        printf("\x1b[%d;%dH%s", TABS[i].y, TABS[i].x, TABS[i].label);
-        if (i == c->tab)
-            printf("\x1b[%d;%dH%.*s", TABS[i].y + 1, TABS[i].x, (int)strlen(TABS[i].label), "-------");
+        int x = TAB_X + i * TAB_W;
+        panel(x, 0, TAB_W, TAB_W, i == c->tab ? BANK_SELECTED : BANK_PANEL);
+        for (int yy = 0; yy < 3; yy++)
+            for (int xx = 0; xx < 3; xx++)
+                text_map()[yy * 32 + x + xx] = (UI_TILE_ICON + i * 9 + yy * 3 + xx) |
+                                               ((i == c->tab ? BANK_ICON_ON : BANK_ICON) << 12);
     }
-    for (int i = 0; i < t.name_count; i++)
+
+    panel(0, TITLE_ROW, COLUMNS, 2, BANK_PANEL);
+    text(1, TITLE_ROW, t.label, BANK_GOLD_TEXT);
+    if (t.name_count)
     {
-        char mark = c->cursor == i ? '>' : fields[t.shape] == i ? '*' : ' ';
-        printf("\x1b[%d;%dH%c%s", OPTIONS_ROW + 1 + (i / 2) * 2, 1 + (i % 2) * 15, mark, t.names[i]);
+        char line[16];
+        sprintf(line, "Style %d of %d", fields[t.shape] + 1, t.name_count);
+        text(8, TITLE_ROW, line, BANK_TEXT);
+        const char *name = t.names[fields[t.shape]];
+        text(COLUMNS - 1 - strlen(name), TITLE_ROW, name, BANK_TEXT);
     }
-    for (int i = 0; i < t.swatch_count; i++)
+    else
     {
+        text(8, TITLE_ROW, "Pick a colour", BANK_TEXT);
+    }
+
+    for (int i = 0; i < 8; i++)
+    {
+        if (i >= t.name_count)
+        {
+            oamSetHidden(&oamSub, i, true);
+            continue;
+        }
+        int x = (i % 4) * TILE_PITCH, y = GRID_ROW + (i / 4) * TILE_H;
+        bool selected = fields[t.shape] == i;
+        panel(x, y, TILE_W, TILE_H, c->cursor == i ? BANK_FOCUS : selected ? BANK_SELECTED : BANK_PANEL);
+        if (selected)
+        {
+            // The bar fits 7 letters: the first word here, the full name in the title.
+            char word[TILE_W + 1];
+            snprintf(word, sizeof(word), "%s", t.names[i]);
+            word[strcspn(word, " ")] = 0;
+            panel(x, y + TILE_H - 2, TILE_W, 2, BANK_SOLID);
+            text(x + (TILE_W - strlen(word)) / 2, y + TILE_H - 2, word, BANK_DARK_TEXT);
+        }
+        Look shown = *look;
+        ((u8 *)&shown)[t.shape] = i;
+        if (c->tab == 1)
+            shown.hat = 0; // hair shows without a hat
+        draw_preview(&shown, i, t.preview_y);
+        oamSet(&oamSub, i, x * 8 + SHIFT + (TILE_W * 8 - 64) / 2, y * 8 + SHIFT_Y + 3, 0, 0, SpriteSize_64x32,
+               SpriteColorFormat_256Color, preview_gfx[i], -1, false, false, false, false, false);
+    }
+
+    int first = strip_first(look, c);
+    for (int n = 0; n < STRIP_SHOWN && first + n < t.swatch_count; n++)
+    {
+        int i = first + n;
         const u16 *shades = (const u16 *)look_ramps_bin + (t.ramp + i) * LOOK_SHADES;
-        BG_PALETTE_SUB[(1 + i / BANK_COLOURS) * 16 + 1 + i % BANK_COLOURS] = shades[LOOK_SWATCH_SHADE];
-        int x = 2 + (i % 10) * 3, y = SWATCH_ROW + (i / 10) * 2;
-        for (int yy = 0; yy < 2; yy++)
-            for (int xx = 0; xx < 2; xx++)
-                swatch_cell(x + xx, y + yy, i);
-        if (c->cursor == t.name_count + i)
-            printf("\x1b[%d;%dH>", y, x - 1);
-        else if (fields[t.colour] == i)
-            printf("\x1b[%d;%dH*", y, x - 1);
+        int bank = BANK_SWATCH + n / 12, k = 1 + n % 12;
+        BG_PALETTE_SUB[bank * 16 + k] = shades[LOOK_SWATCH_SHADE];
+        BG_PALETTE_SUB[bank * 16 + 13] = UI_ICE;
+        BG_PALETTE_SUB[bank * 16 + 14] = UI_WHITE;
+        BG_PALETTE_SUB[bank * 16 + 15] = UI_GOLD;
+        int border = c->cursor == t.name_count + i ? 2 : fields[t.colour] == i ? 1 : 0;
+        int tile = UI_TILE_SWATCH + ((k - 1) * 3 + border) * 4;
+        for (int q = 0; q < 4; q++)
+            text_map()[(STRIP_ROW + q / 2) * 32 + STRIP_X + n * 2 + q % 2] = (tile + q) | (bank << 12);
     }
-    printf("\x1b[%d;1H%c[ Random ]", BUTTON_ROW, c->cursor == random_item ? '>' : ' ');
-    printf("\x1b[%d;18H%c[ Confirm ]", BUTTON_ROW, c->cursor == random_item + 1 ? '>' : ' ');
-    printf("\x1b[23;1HX random  Start confirm  B back");
+    if (t.swatch_count > STRIP_SHOWN)
+    {
+        text(1, STRIP_ROW, "<", first ? BANK_TEXT : BANK_ICON);
+        text(COLUMNS - 1, STRIP_ROW, ">", first + STRIP_SHOWN < t.swatch_count ? BANK_TEXT : BANK_ICON);
+    }
+
+    panel(0, BUTTON_ROW, RANDOM_END - 1, 2, c->cursor == random_item ? BANK_FOCUS : BANK_PANEL);
+    text(1, BUTTON_ROW, "X", BANK_GOLD_TEXT);
+    text(3, BUTTON_ROW, "Random", BANK_TEXT);
+    panel(RANDOM_END, BUTTON_ROW, BACK_END - RANDOM_END - 1, 2, BANK_PANEL);
+    text(RANDOM_END + 1, BUTTON_ROW, "B Back", BANK_TEXT);
+    text(RANDOM_END + 1, BUTTON_ROW, "B", BANK_GOLD_TEXT);
+    bool on_confirm = c->cursor == random_item + 1;
+    panel(BACK_END, BUTTON_ROW, COLUMNS - BACK_END, 2, on_confirm ? BANK_FOCUS : BANK_SOLID);
+    text(BACK_END + 1, BUTTON_ROW, "START Confirm", on_confirm ? BANK_TEXT : BANK_DARK_TEXT);
+    oamUpdate(&oamSub);
 }
 
-// The item under a tap, or -1. A tap on a tab opens it instead.
-static int creator_tap(Creator *c, const Look *look, int cx, int cy)
+// The item under a tap, TAP_BACK, or -1. A tap on a tab opens it instead.
+static int creator_tap(Creator *c, const Look *look, int px, int py)
 {
     const Tab &t = TABS[c->tab];
-    if (cy >= 1 && cy <= 4)
+    int cx = (px - SHIFT) / 8, cy = (py - SHIFT_Y) / 8;
+    if (cy < TITLE_ROW)
     {
-        // Each tab reaches from its label to the next tab's.
-        int row = cy <= 2 ? 2 : 4;
-        for (int i = TAB_COUNT - 1; i >= 0; i--)
-        {
-            if (TABS[i].y == row && cx >= TABS[i].x - 1)
-            {
-                open_tab(c, look, i);
-                break;
-            }
-        }
+        int i = (cx - TAB_X) / TAB_W;
+        if (cx >= TAB_X && i < TAB_COUNT)
+            open_tab(c, look, i);
     }
-    else if (cy >= OPTIONS_ROW && cy < SWATCH_ROW - 1)
+    else if (cy >= GRID_ROW && cy < STRIP_ROW)
     {
-        int i = (cy - OPTIONS_ROW) / 2 * 2 + (cx >= 16 ? 1 : 0);
+        int i = cx / TILE_PITCH + (cy - GRID_ROW) / TILE_H * 4;
         if (i < t.name_count)
             return i;
     }
-    else if (cy >= SWATCH_ROW && cy < SWATCH_ROW + 6)
+    else if (cy >= STRIP_ROW && cy < STRIP_ROW + 2)
     {
-        int i = (cy - SWATCH_ROW) / 2 * 10 + (cx - 1) / 3;
-        if (cx >= 1 && cx < 31 && i < t.swatch_count)
-            return t.name_count + i;
+        int first = strip_first(look, c);
+        int colour = ((const u8 *)look)[t.colour];
+        if (cx < STRIP_X)
+            colour--;
+        else if (cx >= STRIP_X + STRIP_SHOWN * 2)
+            colour++;
+        else
+            colour = first + (cx - STRIP_X) / 2;
+        if (colour >= 0 && colour < t.swatch_count)
+            return t.name_count + colour;
     }
     else if (cy >= BUTTON_ROW - 1)
     {
-        return t.name_count + t.swatch_count + (cx >= 16 ? 1 : 0);
+        int random_item = t.name_count + t.swatch_count;
+        return cx < RANDOM_END ? random_item : cx < BACK_END ? TAP_BACK : random_item + 1;
     }
     return -1;
+}
+
+// Top screen.
+static NE_Material *stage_mat, *boy_mat, *girl_mat;
+static NE_Palette *stage_pal, *boy_pal, *girl_pal;
+static bool stage_girl;
+
+static const int FLAKES = 24;
+static s16 flake_x[FLAKES], flake_y[FLAKES];
+
+static NE_Material *stage_texture(int size_y, int size_x, const void *tex, const void *pal, NE_Palette **out)
+{
+    NE_Material *m = NE_MaterialCreate();
+    NE_MaterialTexLoad(m, NE_PAL16, size_x, size_y, NE_TEXGEN_TEXCOORD, tex);
+    *out = NE_PaletteCreate();
+    NE_PaletteLoad(*out, pal, 16, NE_PAL16);
+    NE_MaterialSetPalette(m, *out);
+    return m;
 }
 
 static void creator_scene(void)
 {
     NE_2DViewInit();
     NE_PolyFormat(31, 0, (NE_LightEnum)0, NE_CULL_NONE, (NE_OtherFormatEnum)0);
-    NE_2DDrawTexturedQuad(64, 32, 192, 160, 0, material);
+    NE_2DDrawTexturedQuad(0, 0, 256, 256, 3, stage_mat);
+    NE_2DDrawTexturedQuad(181, 7, 245, 23, 2, stage_girl ? girl_mat : boy_mat);
+    for (int i = 0; i < FLAKES; i++)
+        NE_2DDrawQuad(flake_x[i], flake_y[i], flake_x[i] + 2, flake_y[i] + 2, 2, NE_White);
+    NE_2DDrawTexturedQuad(64, 32, 192, 160, 1, material);
+}
+
+static void bottom_screen_start(void)
+{
+    vramSetBankI(VRAM_I_SUB_SPRITE);
+    videoSetModeSub(MODE_0_2D);
+    bgInitSub(0, BgType_Text4bpp, BgSize_T_256x256, MAP_TEXT, 0);
+    bgInitSub(1, BgType_Text4bpp, BgSize_T_256x256, MAP_PANELS, 0);
+    REG_BG0HOFS_SUB = -SHIFT;
+    REG_BG1HOFS_SUB = -SHIFT;
+    REG_BG0VOFS_SUB = -SHIFT_Y;
+    REG_BG1VOFS_SUB = -SHIFT_Y;
+    dmaCopy(ui_tiles_bin, BG_TILE_RAM_SUB(0), ui_tiles_bin_size);
+    dmaCopy(ui_pal_bin, BG_PALETTE_SUB, ui_pal_bin_size);
+    oamInit(&oamSub, SpriteMapping_1D_32, false);
+    for (int i = 0; i < 8; i++)
+        preview_gfx[i] = oamAllocateGfx(&oamSub, SpriteSize_64x32, SpriteColorFormat_256Color);
+}
+
+static void bottom_screen_stop(void)
+{
+    for (int i = 0; i < 8; i++)
+        oamFreeGfx(&oamSub, preview_gfx[i]);
+    oamClear(&oamSub, 0, 0);
+    oamUpdate(&oamSub);
+    oamDisable(&oamSub);
+    REG_BG0HOFS_SUB = 0;
+    REG_BG1HOFS_SUB = 0;
+    REG_BG0VOFS_SUB = 0;
+    REG_BG1VOFS_SUB = 0;
+}
+
+static void creator_refresh(const Look *look, const Creator *c)
+{
+    look_apply(look);
+    DC_FlushRange(colours, sizeof(colours));
+    dmaCopy(colours, SPRITE_PALETTE_SUB, sizeof(colours));
+    creator_draw(look, c);
+    stage_girl = look->body != 0;
 }
 
 void creator_run(Look *look)
 {
-    // One solid tile per colour number.
-    u32 *tiles = (u32 *)BG_TILE_RAM_SUB(1) + SOLID_TILE * 8;
-    for (int i = 0; i < BANK_COLOURS; i++)
-        for (int w = 0; w < 8; w++)
-            tiles[i * 8 + w] = 0x11111111u * (i + 1);
+    bottom_screen_start();
+    stage_mat = stage_texture(256, 256, ui_top_tex_bin, ui_top_pal_bin, &stage_pal);
+    boy_mat = stage_texture(16, 64, ui_boy_tex_bin, ui_boy_pal_bin, &boy_pal);
+    girl_mat = stage_texture(16, 64, ui_girl_tex_bin, ui_girl_pal_bin, &girl_pal);
+    for (int i = 0; i < FLAKES; i++)
+    {
+        flake_x[i] = rand() % 256;
+        flake_y[i] = rand() % 192;
+    }
 
     Creator c = { 0, 0 };
     open_tab(&c, look, 1);
-    int tick = 0;
-    bool confirmed = false;
+    int tick = 0, facing = 0;
+    bool confirmed = false, walking = false;
     keysSetRepeat(20, 6);
-    creator_draw(look, &c);
-    look_apply(look);
+    creator_refresh(look, &c);
 #ifdef TEST_TAPS
     static const u8 taps[][2] = TEST_TAPS;
     unsigned next_tap = 0;
@@ -364,8 +555,8 @@ void creator_run(Look *look)
         if (tick % 45 == 0 && next_tap < sizeof(taps) / sizeof(taps[0]))
         {
             down |= KEY_TOUCH;
-            tap_x = taps[next_tap][0] * 8;
-            tap_y = taps[next_tap][1] * 8;
+            tap_x = taps[next_tap][0];
+            tap_y = taps[next_tap][1];
             next_tap++;
         }
 #endif
@@ -381,8 +572,12 @@ void creator_run(Look *look)
         bool changed = true;
         if (down & KEY_TOUCH)
         {
-            int item = creator_tap(&c, look, tap_x / 8, tap_y / 8);
-            if (item >= 0)
+            int item = creator_tap(&c, look, tap_x, tap_y);
+            if (item == TAP_BACK)
+            {
+                open_tab(&c, look, c.tab - 1);
+            }
+            else if (item >= 0)
             {
                 c.cursor = item;
                 confirmed = creator_pick(look, &c, item);
@@ -407,18 +602,37 @@ void creator_run(Look *look)
         else
             changed = false;
         if (changed)
+            creator_refresh(look, &c);
+
+        if (down & KEY_L)
+            facing = (facing + 3) % 4;
+        if (down & KEY_R)
+            facing = (facing + 1) % 4;
+        if (down & KEY_Y)
+            walking = !walking;
+
+        for (int i = 0; i < FLAKES; i++)
         {
-            creator_draw(look, &c);
-            look_apply(look);
+            if (tick % (1 + i % 3) == 0)
+                flake_y[i]++;
+            if (flake_y[i] > 140)
+            {
+                flake_y[i] = 0;
+                flake_x[i] = rand() % 256;
+            }
         }
 
-        // Stand, then walk, facing each way in turn: down, left, up, right.
-        static const int ROWS[] = { 2, 1, 0, 3 };
-        const int STAND = 30, STRIDE = 6;
-        int t = tick % (STAND + STRIDE * 8);
-        int row = ROWS[(tick / (STAND + STRIDE * 8)) % 4];
-        look_compose(look, row, t < STAND ? 0 : 1 + (t - STAND) / STRIDE);
+        static const int ROWS[] = { 2, 1, 0, 3 }; // down, left, up, right
+        const int STRIDE = 6;
+        look_compose(look, ROWS[facing], walking ? 1 + (tick / STRIDE) % 8 : 0);
         NE_Process(creator_scene);
     }
-    consoleClear();
+
+    NE_MaterialDelete(stage_mat);
+    NE_MaterialDelete(boy_mat);
+    NE_MaterialDelete(girl_mat);
+    NE_PaletteDelete(stage_pal);
+    NE_PaletteDelete(boy_pal);
+    NE_PaletteDelete(girl_pal);
+    bottom_screen_stop();
 }

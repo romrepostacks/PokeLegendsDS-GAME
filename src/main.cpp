@@ -377,12 +377,8 @@ int main(int argc, char **argv)
     NE_AntialiasEnable(true); // smooth polygon edges
     NE_ClearColorSet(RGB15(4, 7, 14), 31, 63); // deep navy sea and sky
 
-    // Bottom screen console on VRAM H, so it can't collide with Nitro Engine's
-    // texture banks (A-D).
-    PrintConsole bottomScreen;
-    videoSetModeSub(MODE_0_2D);
+    // The bottom screen uses VRAM H, so it can't collide with Nitro Engine's texture banks (A-D).
     vramSetBankH(VRAM_H_SUB_BG);
-    consoleInit(&bottomScreen, 0, BgType_Text4bpp, BgSize_T_256x256, 2, 1, false, true);
 
     camera = NE_CameraCreate();
 
@@ -446,6 +442,10 @@ int main(int argc, char **argv)
         save_write(&data);
     }
     look_apply(&data.look);
+
+    PrintConsole bottomScreen;
+    videoSetModeSub(MODE_0_2D);
+    consoleInit(&bottomScreen, 0, BgType_Text4bpp, BgSize_T_256x256, 2, 1, false, true);
 
     printf("\x1b[1;1HPoke Legends: Beyond the Nine");
     printf("\x1b[3;1HPort Saltmere");
