@@ -290,6 +290,9 @@ def outline(img):
     return out
 
 
+hat_trim = 0
+
+
 def parts(look, anim, row, f):
     """One frame as (layer name, 64x64 image) pairs, bottom to top. The game combines the same
     layers on the DS, see tools/art/make_look.py."""
@@ -344,7 +347,8 @@ def parts(look, anim, row, f):
         img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
         return img, ImageDraw.Draw(img)
 
-    cx, w = (hx0 + hx1) // 2, hx1 - hx0
+    cx, w = (hx0 + hx1) // 2, hx1 - hx0 - hat_trim
+    htop += hat_trim // 4
     hat = look["hat"]
     if hat != "hood":
         out.append((f"hair-{look['hair']}", hair(0)))
@@ -389,6 +393,7 @@ def cell(look, anim, row, f):
 # same layers as walking plus bike-back and bike-front.
 
 PHASES = 4
+RIDE_HAT_TRIM = 4    # the seated rider is compact, so hats are drawn narrower
 SIT = ("sit", 2)
 ARMS_OUT = ("thrust", 4)
 PEDAL_Y = 58         # where the rider's feet end up
@@ -590,7 +595,10 @@ def side_leg(name, look, hip, foot, k):
 def ride_parts(look, row, phase):
     pose = SIT if row in (UP, DOWN) else ARMS_OUT
     top_dy = ride_offsets(look, row)[1]
+    global hat_trim
+    hat_trim = RIDE_HAT_TRIM
     wear = parts(look, pose[0], row, pose[1])
+    hat_trim = 0
     lower = parts(look, SIT[0], row, SIT[1])
     cut = 46 if pose == ARMS_OUT else 63
     legs = [(n, img) for n, img in lower if n.split("-")[0] in ("legs", "feet", "bottoms")]
