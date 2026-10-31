@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -6,6 +7,8 @@
 #include <fat.h>
 #include <nds.h>
 
+#include "npc_pal_bin.h"
+#include "npc_tex_bin.h"
 #include "player_pal_bin.h"
 #include "player_tex_bin.h"
 #include "saltmere.h"
@@ -173,6 +176,11 @@ static const int CHUNK_COLS = SALTMERE_W / CHUNK_TILES;
 static const int CHUNK_ROWS = SALTMERE_H / CHUNK_TILES;
 static NE_Model *chunks[CHUNK_COLS * CHUNK_ROWS];
 static NE_Material *player_mat;
+static NE_Material *npc_mat;
+
+// The harbour NPC, standing by the fountain. Sheet: tools/art/make_npc.py.
+static const int NPC_X = 17, NPC_Y = 11;
+static const int NPC_CELL[] = { 2, 0, 1, 3 };   // DOWN, UP, LEFT, RIGHT
 static Player player;
 static float cam_x, cam_z;
 
@@ -182,6 +190,8 @@ static float tile_z(int ty) { return (ty + 0.5f - SALTMERE_H / 2.0f) * TILE; }
 static bool walkable(int tx, int ty)
 {
     if (tx < 0 || ty < 0 || tx >= SALTMERE_W || ty >= SALTMERE_H)
+        return false;
+    if (tx == NPC_X && ty == NPC_Y)
         return false;
     char t = saltmere_map[ty][tx];
     return t == '.' || t == ',' || t == ':' || t == 'r' || t == 'P';
@@ -227,6 +237,43 @@ static void player_pos(float *x, float *z)
     float t = (float)player.step / STEP_FRAMES[player.mode];
     *x = tile_x(player.tx) - DX[player.dir] * TILE * t;
     *z = tile_z(player.ty) - DY[player.dir] * TILE * t;
+}
+
+// Faces the player when they come within 3 tiles, otherwise looks out across the plaza.
+static int npc_facing(void)
+{
+    int dx = player.tx - NPC_X, dy = player.ty - NPC_Y;
+    if (abs(dx) + abs(dy) > 3)
+        return DOWN;
+    if (abs(dx) > abs(dy))
+        return dx < 0 ? LEFT : RIGHT;
+    return dy < 0 ? UP : DOWN;
+}
+
+static void draw_npc(void)
+{
+    int u0 = NPC_CELL[npc_facing()] * 32;
+
+    NE_ViewPush();
+    NE_ViewMove(tile_x(NPC_X), 0, tile_z(NPC_Y));
+    NE_PolyFormat(31, 2, (NE_LightEnum)0, NE_CULL_NONE, (NE_OtherFormatEnum)0);
+    NE_MaterialUse(npc_mat);
+
+    // 32x60 at one sprite pixel to one screen pixel, leaning back like the player.
+    const float w = 0.125f, h = 0.4547f, up = 0.78f, back = -0.63f;
+    NE_PolyBegin(GL_QUAD);
+    NE_PolyColor(RGB15(31, 31, 31));
+    NE_PolyTexCoord(u0, 60);
+    NE_PolyVertex(-w, 0, 0);
+    NE_PolyTexCoord(u0 + 32, 60);
+    NE_PolyVertex(w, 0, 0);
+    NE_PolyTexCoord(u0 + 32, 0);
+    NE_PolyVertex(w, h * up, h * back);
+    NE_PolyTexCoord(u0, 0);
+    NE_PolyVertex(-w, h * up, h * back);
+    NE_PolyEnd();
+
+    NE_ViewPop();
 }
 
 static void draw_player(void)
@@ -312,6 +359,7 @@ static void draw_scene(void)
         }
     }
 
+    draw_npc();
     draw_player();
 }
 
@@ -351,6 +399,16 @@ int main(int argc, char **argv)
         NE_ModelLoadStaticMesh(chunks[i], saltmere_bin + offsets[i]);
         NE_ModelSetMaterial(chunks[i], town_mat);
     }
+
+    npc_mat = NE_MaterialCreate();
+    NE_MaterialTexLoad(npc_mat, NE_PAL256, 128, 64,
+                       (NE_TextureFlags)(NE_TEXGEN_TEXCOORD | NE_TEXTURE_COLOR0_TRANSPARENT),
+                       npc_tex_bin);
+    NE_Palette *npc_pal = NE_PaletteCreate();
+    static u16 npc_colours[256];
+    memcpy(npc_colours, npc_pal_bin, npc_pal_bin_size);
+    NE_PaletteLoad(npc_pal, npc_colours, 256, NE_PAL256);
+    NE_MaterialSetPalette(npc_mat, npc_pal);
 
     player_mat = NE_MaterialCreate();
     NE_MaterialTexLoad(player_mat, NE_PAL16, 256, 512,

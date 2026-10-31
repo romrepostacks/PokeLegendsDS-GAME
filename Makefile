@@ -33,7 +33,7 @@ IMG2DS		:= $(BLOCKSDSEXT)/nitro-engine/tools/img2ds/img2ds.py
 
 .PHONY: models textures
 models: data/models/saltmere.bin
-textures: data/textures/player_tex.bin data/textures/saltmere_tex.bin
+textures: data/textures/player_tex.bin data/textures/saltmere_tex.bin data/textures/npc_tex.bin
 
 data/models/saltmere.bin: maps/saltmere.h tools/blender/build_saltmere.py tools/art/pack_chunks.py
 	@rm -rf build/saltmere
@@ -45,6 +45,12 @@ data/models/saltmere.bin: maps/saltmere.h tools/blender/build_saltmere.py tools/
 # Pixel art is drawn by scripts, then converted to paletted DS textures.
 art/sprites/player.png: tools/art/make_player.py
 	$(PYTHON) -I $< $@
+
+art/sprites/npc.png: art/player/kyle-player-lpc.png tools/art/make_npc.py
+	$(PYTHON) -I tools/art/make_npc.py $< $@
+
+data/textures/npc_tex.bin: art/sprites/npc.png
+	$(PYTHON) $$(cygpath -w $(IMG2DS)) --input $< --name npc --output data/textures --format PAL256
 
 art/textures/saltmere.png: tools/art/make_atlas.py
 	$(PYTHON) -I $< $@
