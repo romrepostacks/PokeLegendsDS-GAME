@@ -83,6 +83,9 @@ def cap(f, x0, x1, dy=0):
     f.ellipse(m - 1, 0 + dy, m + 2, 2 + dy, "W")
 
 
+BODY = "boy"   # or "girl": longer hair, lashes and a belted parka
+
+
 def head_front(f, dy=0):
     f.rect(12, 9 + dy, 19, 13 + dy, "S")
     f.rect(18, 9 + dy, 19, 13 + dy, "s")
@@ -91,10 +94,17 @@ def head_front(f, dy=0):
     cap(f, 11, 20, dy)
     f.rect(13, 10 + dy, 13, 11 + dy, "o")
     f.rect(17, 10 + dy, 17, 11 + dy, "o")
+    if BODY == "girl":
+        f.rect(10, 9 + dy, 11, 17 + dy, "H")    # hair down past the shoulders
+        f.rect(20, 9 + dy, 21, 17 + dy, "H")
+        f.rect(12, 10 + dy, 12, 10 + dy, "o")                 # lashes
+        f.rect(18, 10 + dy, 18, 10 + dy, "o")
 
 
 def head_back(f, dy=0):
     f.rect(11, 9 + dy, 20, 13 + dy, "H")
+    if BODY == "girl":
+        f.rect(11, 14 + dy, 20, 18 + dy, "H")
     cap(f, 11, 20, dy)
 
 
@@ -104,11 +114,17 @@ def head_side(f, dx=0, dy=0):
     f.rect(15 + dx, 10 + dy, 15 + dx, 13 + dy, "s")
     cap(f, 11 + dx, 19 + dx, dy)
     f.rect(12 + dx, 10 + dy, 12 + dx, 11 + dy, "o")
+    if BODY == "girl":
+        f.rect(16 + dx, 13 + dy, 19 + dx, 17 + dy, "H")
+        f.rect(11 + dx, 10 + dy, 11 + dx, 10 + dy, "o")
 
 
 def torso_front(f, back, dy=0, bottom=22):
     f.rect(11, 15 + dy, 20, bottom + dy, "R")
     f.rect(18, 15 + dy, 20, bottom + dy, "r")
+    if BODY == "girl":
+        f.rect(12, 19 + dy, 19, 19 + dy, "r")      # belted waist
+        f.rect(10, bottom + dy, 21, bottom + dy, "R")  # flared hem
     f.rect(11, 16 + dy, 11, bottom - 1 + dy, "o")  # seams keep the arms readable
     f.rect(20, 16 + dy, 20, bottom - 1 + dy, "o")
     if back:
@@ -163,6 +179,9 @@ def body_side(f, dx=0, dy=0, bottom=22):
     f.rect(12 + dx, 15 + dy, 18 + dx, bottom + dy, "R")
     f.rect(17 + dx, 15 + dy, 18 + dx, bottom + dy, "r")
     f.rect(12 + dx, 14 + dy, 18 + dx, 15 + dy, "W")
+    if BODY == "girl":
+        f.rect(12 + dx, 19 + dy, 18 + dx, 19 + dy, "r")
+        f.rect(11 + dx, bottom + dy, 19 + dx, bottom + dy, "R")
 
 
 # --- Walk and run ------------------------------------------------------------------
@@ -350,4 +369,7 @@ def main(out):
 
 
 if __name__ == "__main__":
+    # Optional second argument: "girl". The game still uses the boy sheet.
+    if len(sys.argv) > 2:
+        BODY = sys.argv[2]
     main(sys.argv[1])
