@@ -1,0 +1,46 @@
+// Written by tools/art/make_look.py.
+#pragma once
+
+#define LOOK_LAYERS 28
+#define LOOK_FRAMES 17
+#define LOOK_SHADES 8
+#define LOOK_SWATCH_SHADE 5
+#define LOOK_RUN_FRAME 9
+#define LAYER_BODY 0
+#define LAYER_HEAD 13
+#define LAYER_SCARF 22
+#define LAYER_LEGS_UNDER 3
+#define LAYER_LEGS 1
+#define LAYER_FEET 4
+#define LAYER_BOTTOMS 7
+#define LAYER_TOP 9
+#define LAYER_HAIR 14
+#define LAYER_HAT 23
+
+#define SLOT_SKIN 0
+#define SLOT_EYES 1
+#define SLOT_HAIR 2
+#define SLOT_HAT 3
+#define SLOT_POMPOM 4
+#define SLOT_TOP 5
+#define SLOT_TRIM 6
+#define SLOT_BOTTOMS 7
+#define SLOT_UNDER 8
+#define SLOT_SHOE 9
+#define SLOT_SCARF 10
+#define SLOT_COUNT 11
+
+#define RAMP_COLOURS 0
+#define RAMP_HAIR 30
+#define RAMP_SKIN 60
+#define RAMP_EYES 68
+#define RAMP_FIXED 76
+#define DEFAULT_HAT_COLOUR 25
+#define DEFAULT_TOP_COLOUR 26
+#define DEFAULT_BOTTOMS_COLOUR 0
+#define DEFAULT_SHOE_COLOUR 28
+#define DEFAULT_SCARF_COLOUR 10
+#define DEFAULT_HAIR_COLOUR 3
+#define COUNT_COLOURS 30
+#define COUNT_SKIN 8
+#define COUNT_EYES 8

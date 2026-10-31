@@ -31,7 +31,14 @@ OBJ2DL		:= $(BLOCKSDSEXT)/nitro-engine/tools/obj2dl/obj2dl.py
 
 IMG2DS		:= $(BLOCKSDSEXT)/nitro-engine/tools/img2ds/img2ds.py
 
-.PHONY: models textures
+# Every character option, packed for the game. Needs the LPC generator's files; the output
+# is committed, so a plain `make` doesn't.
+LPC		?= ../lpc-generator
+
+.PHONY: models textures look
+look:
+	$(PYTHON) tools/art/make_look.py $$(cygpath -w $(LPC)) data/textures include/look_data.h
+
 models: data/models/saltmere.bin
 textures: data/textures/player_tex.bin data/textures/saltmere_tex.bin data/textures/npc_tex.bin
 

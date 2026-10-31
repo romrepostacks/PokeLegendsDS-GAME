@@ -18,7 +18,7 @@ from PIL import Image, ImageDraw
 
 from colour_options import COLOURS, EYES, HAIR_COLOURS, SKINS
 
-lpc, out_dir = sys.argv[1:3]
+lpc = sys.argv[1]
 
 UP, LEFT, DOWN, RIGHT = range(4)
 OUTLINE = (28, 30, 52, 255)
@@ -398,8 +398,9 @@ def outline(img):
     return out
 
 
-def cell(look, anim, row, f):
-    """One finished 64x64 frame."""
+def parts(look, anim, row, f):
+    """One frame as (layer name, 64x64 image) pairs, bottom to top. The game combines the same
+    layers on the DS, see tools/art/make_look.py."""
     area = (f * 64, row * 64, (f + 1) * 64, (row + 1) * 64)
     body = look["body"]
     head_name = "heads_human_male" if body == "male" else "heads_human_female"
@@ -414,47 +415,63 @@ def cell(look, anim, row, f):
     shirt_colour = look["trim"] if look["top"] == "vest" else look["top_colour"]
     top = layer("torso_clothes_longsleeve2", body, anim, area, tuple(shirt_colour))
 
-    frame = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
-    frame.alpha_composite(base)
-    frame.alpha_composite(legs)
-    frame.alpha_composite(feet)
     hx0, htop, hx1, hbot = box(head)
     boxes = box(top)
     tcx = (boxes[0] + boxes[2]) // 2
-    frame.alpha_composite(paint_bottoms(look, legs, boxes[3], tcx, row))
+    out = [("body", base), ("legs-under" if over_leggings else f"legs-{look['bottoms']}", legs),
+           (f"feet-{look['shoes']}", feet)]
+    if over_leggings:
+        out.append((f"bottoms-{look['bottoms']}", paint_bottoms(look, legs, boxes[3], tcx, row)))
 
     under = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
     paint_clothes(ImageDraw.Draw(under), top, top.load(), row, look, boxes)
     coat = top.copy()
     coat.alpha_composite(under)
-    frame.alpha_composite(outline(coat))
-    frame.alpha_composite(head)
-    frame.alpha_composite(eye_layer(anim, area, tuple(look["eyes"])))
+    out.append((f"top-{look['top']}", outline(coat)))
+    face = head.copy()
+    face.alpha_composite(eye_layer(anim, area, tuple(look["eyes"])))
+    out.append(("head", face))
 
-    over = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
-    d = ImageDraw.Draw(over)
+    def over():
+        img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+        return img, ImageDraw.Draw(img)
+
     cx, w = (hx0 + hx1) // 2, hx1 - hx0
     hat = look["hat"]
     if hat != "hood":
+        img, d = over()
         draw_hair(d, cx, htop, w, row, look)
+        out.append((f"hair-{look['hair']}", outline(img)))
     if look["scarf"]:
+        img, d = over()
         scarf, dark = rgba(look["scarf_colour"]), shade(look["scarf_colour"], 0.72)
         d.rectangle((tcx - 6, hbot - 1, tcx + 6, hbot + 2), fill=scarf)
         d.line((tcx - 6, hbot + 2, tcx + 6, hbot + 2), fill=dark)
         if row == DOWN:
             d.rectangle((tcx + 2, hbot + 2, tcx + 5, hbot + 9), fill=scarf)
             d.line((tcx + 5, hbot + 2, tcx + 5, hbot + 9), fill=dark)
-    if hat == "beanie":
-        draw_beanie(d, cx, htop, w, row, look)
-    elif hat == "knitcap":
-        draw_knitcap(d, cx, htop, w, row, look)
-    elif hat == "cap":
-        draw_cap(d, cx, htop, w, row, look)
-    elif hat == "earmuffs":
-        draw_earmuffs(d, cx, htop, w, row, look)
-    elif hat == "hood":
-        draw_hood(d, d, cx, htop, w, hbot, row, look)
-    frame.alpha_composite(outline(over))
+        out.append(("scarf", outline(img)))
+    if hat != "none":
+        img, d = over()
+        if hat == "beanie":
+            draw_beanie(d, cx, htop, w, row, look)
+        elif hat == "knitcap":
+            draw_knitcap(d, cx, htop, w, row, look)
+        elif hat == "cap":
+            draw_cap(d, cx, htop, w, row, look)
+        elif hat == "earmuffs":
+            draw_earmuffs(d, cx, htop, w, row, look)
+        elif hat == "hood":
+            draw_hood(d, d, cx, htop, w, hbot, row, look)
+        out.append((f"hat-{hat}", outline(img)))
+    return out
+
+
+def cell(look, anim, row, f):
+    """One finished 64x64 frame."""
+    frame = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+    for _, img in parts(look, anim, row, f):
+        frame.alpha_composite(img)
     return frame
 
 
@@ -496,24 +513,26 @@ def options(key, values):
     return [{**b, key: v} for v in values for b in (LOOK_BOY, LOOK_GIRL)]
 
 
-os.makedirs(out_dir, exist_ok=True)
-for name, look in (("boy", LOOK_BOY), ("girl", LOOK_GIRL)):
-    sheet(look, "walk").save(f"{out_dir}/{name}-walk-sheet.png")
-    sheet(look, "run").save(f"{out_dir}/{name}-run-sheet.png")
+if __name__ == "__main__":
+    out_dir = sys.argv[2]
+    os.makedirs(out_dir, exist_ok=True)
+    for name, look in (("boy", LOOK_BOY), ("girl", LOOK_GIRL)):
+        sheet(look, "walk").save(f"{out_dir}/{name}-walk-sheet.png")
+        sheet(look, "run").save(f"{out_dir}/{name}-run-sheet.png")
 
-BACK = ("walk", UP, 0)
-grid("hair-shapes", [{**LOOK_BOY, "hat": "none", "hair": h} for h in HAIRS] +
-     [{**LOOK_GIRL, "hat": "none", "hair": h} for h in HAIRS], poses=(FRONT, SIDE_RUN, BACK), cols=4)
-grid("hats", options("hat", HATS), cols=4)
-grid("tops", [{**l, "hat": "none"} for l in options("top", TOPS)], cols=4)
-grid("scarf", options("scarf", (False, True)), cols=4)
-grid("bottoms", [{**l, "top": "padded"} for l in options("bottoms", BOTTOMS)], cols=4)
-grid("shoes", options("shoes", SHOES), cols=3)
-grid("skin", options("skin", SKINS), cols=4)
-grid("eyes", options("eyes", EYES), cols=4)
-for part, key, values in (("top", "top_colour", COLOURS), ("hat", "hat_colour", COLOURS),
-                          ("bottoms", "bottoms_colour", COLOURS), ("shoes", "shoe_colour", COLOURS),
-                          ("hair", "hair_colour", HAIR_COLOURS)):
-    base = {**LOOK_BOY, "hat": "none"} if part == "hair" else LOOK_BOY
-    grid(f"colours-{part}", [{**base, key: v} for v in values], cols=10, poses=(FRONT,))
-print("options ->", out_dir)
+    BACK = ("walk", UP, 0)
+    grid("hair-shapes", [{**LOOK_BOY, "hat": "none", "hair": h} for h in HAIRS] +
+         [{**LOOK_GIRL, "hat": "none", "hair": h} for h in HAIRS], poses=(FRONT, SIDE_RUN, BACK), cols=4)
+    grid("hats", options("hat", HATS), cols=4)
+    grid("tops", [{**l, "hat": "none"} for l in options("top", TOPS)], cols=4)
+    grid("scarf", options("scarf", (False, True)), cols=4)
+    grid("bottoms", [{**l, "top": "padded"} for l in options("bottoms", BOTTOMS)], cols=4)
+    grid("shoes", options("shoes", SHOES), cols=3)
+    grid("skin", options("skin", SKINS), cols=4)
+    grid("eyes", options("eyes", EYES), cols=4)
+    for part, key, values in (("top", "top_colour", COLOURS), ("hat", "hat_colour", COLOURS),
+                              ("bottoms", "bottoms_colour", COLOURS), ("shoes", "shoe_colour", COLOURS),
+                              ("hair", "hair_colour", HAIR_COLOURS)):
+        base = {**LOOK_BOY, "hat": "none"} if part == "hair" else LOOK_BOY
+        grid(f"colours-{part}", [{**base, key: v} for v in values], cols=10, poses=(FRONT,))
+    print("options ->", out_dir)
