@@ -172,49 +172,6 @@ static const Tab TABS[] = {
 };
 static const int TAB_COUNT = sizeof(TABS) / sizeof(TABS[0]);
 
-static const int OPTIONS_ROW = 6, SWATCH_ROW = 15, BUTTON_ROW = 22;
-// Solid tiles past the console font, one per colour number in a palette bank. The console only
-// uses entry 15 of each bank, so entries 1-14 are free for swatches.
-static const int SOLID_TILE = 300, BANK_COLOURS = 14;
-
-static void swatch_cell(int x, int y, int i)
-{
-    u16 *map = (u16 *)BG_MAP_RAM_SUB(2);
-    map[y * 32 + x] = (SOLID_TILE + i % BANK_COLOURS) | ((1 + i / BANK_COLOURS) << 12);
-}
-
-static void creator_draw(const Look *look, int tab)
-{
-    const Tab &t = TABS[tab];
-    const u8 *fields = (const u8 *)look;
-    consoleClear();
-    printf("\x1b[0;1HCreate your trainer");
-    for (int i = 0; i < TAB_COUNT; i++)
-    {
-        printf("\x1b[%d;%dH%s", TABS[i].y, TABS[i].x, TABS[i].label);
-        if (i == tab)
-            printf("\x1b[%d;%dH%.*s", TABS[i].y + 1, TABS[i].x, (int)strlen(TABS[i].label), "-------");
-    }
-    for (int i = 0; i < t.name_count; i++)
-    {
-        printf("\x1b[%d;%dH%c%s", OPTIONS_ROW + 1 + (i / 2) * 2, 1 + (i % 2) * 15,
-               fields[t.shape] == i ? '>' : ' ', t.names[i]);
-    }
-    for (int i = 0; i < t.swatch_count; i++)
-    {
-        const u16 *shades = (const u16 *)look_ramps_bin + (t.ramp + i) * LOOK_SHADES;
-        BG_PALETTE_SUB[(1 + i / BANK_COLOURS) * 16 + 1 + i % BANK_COLOURS] = shades[LOOK_SWATCH_SHADE];
-        int x = 2 + (i % 10) * 3, y = SWATCH_ROW + (i / 10) * 2;
-        for (int yy = 0; yy < 2; yy++)
-            for (int xx = 0; xx < 2; xx++)
-                swatch_cell(x + xx, y + yy, i);
-        if (fields[t.colour] == i)
-            printf("\x1b[%d;%dH>", y, x - 1);
-    }
-    printf("\x1b[%d;2H[ Random ]", BUTTON_ROW);
-    printf("\x1b[%d;19H[ Confirm ]", BUTTON_ROW);
-}
-
 static void randomise(Look *look)
 {
     u8 version = look->version;
@@ -236,11 +193,95 @@ static void randomise(Look *look)
     look->version = version;
 }
 
+// The controls work on items, so a new skin only replaces the drawing below. Each tab's items
+// run in order: its shapes, its colours, Random, Confirm. Touch and the d-pad both end up here.
+struct Creator
+{
+    int tab;
+    int cursor;  // item the d-pad is on
+};
+
+static int item_count(const Tab &t)
+{
+    return t.name_count + t.swatch_count + 2;
+}
+
+static void open_tab(Creator *c, const Look *look, int tab)
+{
+    c->tab = (tab + TAB_COUNT) % TAB_COUNT;
+    const Tab &t = TABS[c->tab];
+    c->cursor = t.name_count ? ((const u8 *)look)[t.shape] : ((const u8 *)look)[t.colour];
+}
+
 // Returns true when the player confirmed.
-static bool creator_tap(Look *look, int *tab, int cx, int cy)
+static bool creator_pick(Look *look, const Creator *c, int item)
 {
     u8 *fields = (u8 *)look;
-    const Tab &t = TABS[*tab];
+    const Tab &t = TABS[c->tab];
+    if (item < t.name_count)
+        fields[t.shape] = item;
+    else if (item < t.name_count + t.swatch_count)
+        fields[t.colour] = item - t.name_count;
+    else if (item == t.name_count + t.swatch_count)
+        randomise(look);
+    else
+        return true;
+    return false;
+}
+
+// --- Drawing and tap areas: the part a new skin replaces. ---
+
+static const int OPTIONS_ROW = 6, SWATCH_ROW = 15, BUTTON_ROW = 22;
+// Solid tiles past the console font, one per colour number in a palette bank. The console only
+// uses entry 15 of each bank, so entries 1-14 are free for swatches.
+static const int SOLID_TILE = 300, BANK_COLOURS = 14;
+
+static void swatch_cell(int x, int y, int i)
+{
+    u16 *map = (u16 *)BG_MAP_RAM_SUB(2);
+    map[y * 32 + x] = (SOLID_TILE + i % BANK_COLOURS) | ((1 + i / BANK_COLOURS) << 12);
+}
+
+static void creator_draw(const Look *look, const Creator *c)
+{
+    const Tab &t = TABS[c->tab];
+    const u8 *fields = (const u8 *)look;
+    const int random_item = t.name_count + t.swatch_count;
+    consoleClear();
+    printf("\x1b[0;1HCreate your trainer");
+    for (int i = 0; i < TAB_COUNT; i++)
+    {
+        printf("\x1b[%d;%dH%s", TABS[i].y, TABS[i].x, TABS[i].label);
+        if (i == c->tab)
+            printf("\x1b[%d;%dH%.*s", TABS[i].y + 1, TABS[i].x, (int)strlen(TABS[i].label), "-------");
+    }
+    for (int i = 0; i < t.name_count; i++)
+    {
+        char mark = c->cursor == i ? '>' : fields[t.shape] == i ? '*' : ' ';
+        printf("\x1b[%d;%dH%c%s", OPTIONS_ROW + 1 + (i / 2) * 2, 1 + (i % 2) * 15, mark, t.names[i]);
+    }
+    for (int i = 0; i < t.swatch_count; i++)
+    {
+        const u16 *shades = (const u16 *)look_ramps_bin + (t.ramp + i) * LOOK_SHADES;
+        BG_PALETTE_SUB[(1 + i / BANK_COLOURS) * 16 + 1 + i % BANK_COLOURS] = shades[LOOK_SWATCH_SHADE];
+        int x = 2 + (i % 10) * 3, y = SWATCH_ROW + (i / 10) * 2;
+        for (int yy = 0; yy < 2; yy++)
+            for (int xx = 0; xx < 2; xx++)
+                swatch_cell(x + xx, y + yy, i);
+        if (c->cursor == t.name_count + i)
+            printf("\x1b[%d;%dH>", y, x - 1);
+        else if (fields[t.colour] == i)
+            printf("\x1b[%d;%dH*", y, x - 1);
+    }
+    printf("\x1b[%d;1H%c[ Random ]", BUTTON_ROW, c->cursor == random_item ? '>' : ' ');
+    printf("\x1b[%d;18H%c[ Confirm ]", BUTTON_ROW, c->cursor == random_item + 1 ? '>' : ' ');
+    printf("\x1b[23;1HX random  Start confirm  B back");
+}
+
+// The item under a tap, or -1. A tap on a tab opens it instead.
+static int creator_tap(Creator *c, const Look *look, int cx, int cy)
+{
+    const Tab &t = TABS[c->tab];
     if (cy >= 1 && cy <= 4)
     {
         // Each tab reaches from its label to the next tab's.
@@ -249,8 +290,8 @@ static bool creator_tap(Look *look, int *tab, int cx, int cy)
         {
             if (TABS[i].y == row && cx >= TABS[i].x - 1)
             {
-                *tab = i;
-                return false;
+                open_tab(c, look, i);
+                break;
             }
         }
     }
@@ -258,21 +299,19 @@ static bool creator_tap(Look *look, int *tab, int cx, int cy)
     {
         int i = (cy - OPTIONS_ROW) / 2 * 2 + (cx >= 16 ? 1 : 0);
         if (i < t.name_count)
-            fields[t.shape] = i;
+            return i;
     }
     else if (cy >= SWATCH_ROW && cy < SWATCH_ROW + 6)
     {
         int i = (cy - SWATCH_ROW) / 2 * 10 + (cx - 1) / 3;
         if (cx >= 1 && cx < 31 && i < t.swatch_count)
-            fields[t.colour] = i;
+            return t.name_count + i;
     }
     else if (cy >= BUTTON_ROW - 1)
     {
-        if (cx >= 16)
-            return true;
-        randomise(look);
+        return t.name_count + t.swatch_count + (cx >= 16 ? 1 : 0);
     }
-    return false;
+    return -1;
 }
 
 static void creator_scene(void)
@@ -290,14 +329,20 @@ void creator_run(Look *look)
         for (int w = 0; w < 8; w++)
             tiles[i * 8 + w] = 0x11111111u * (i + 1);
 
-    int tab = 1;
+    Creator c = { 0, 0 };
+    open_tab(&c, look, 1);
     int tick = 0;
     bool confirmed = false;
-    creator_draw(look, tab);
+    keysSetRepeat(20, 6);
+    creator_draw(look, &c);
     look_apply(look);
 #ifdef TEST_TAPS
     static const u8 taps[][2] = TEST_TAPS;
     unsigned next_tap = 0;
+#endif
+#ifdef TEST_PRESSES
+    static const u32 presses[] = TEST_PRESSES;
+    unsigned next_press = 0;
 #endif
 
     while (!confirmed)
@@ -306,6 +351,7 @@ void creator_run(Look *look)
         look_upload();
         scanKeys();
         u32 down = keysDown();
+        u32 repeat = keysDownRepeat();
         touchPosition touch;
         touchRead(&touch);
         int tap_x = touch.px, tap_y = touch.py;
@@ -319,10 +365,46 @@ void creator_run(Look *look)
             next_tap++;
         }
 #endif
+#ifdef TEST_PRESSES
+        if (tick % 30 == 0 && next_press < sizeof(presses) / sizeof(presses[0]))
+        {
+            down |= presses[next_press];
+            repeat |= presses[next_press];
+            next_press++;
+        }
+#endif
+        int count = item_count(TABS[c.tab]);
+        bool changed = true;
         if (down & KEY_TOUCH)
         {
-            confirmed = creator_tap(look, &tab, tap_x / 8, tap_y / 8);
-            creator_draw(look, tab);
+            int item = creator_tap(&c, look, tap_x / 8, tap_y / 8);
+            if (item >= 0)
+            {
+                c.cursor = item;
+                confirmed = creator_pick(look, &c, item);
+            }
+        }
+        else if (repeat & KEY_LEFT)
+            open_tab(&c, look, c.tab - 1);
+        else if (repeat & KEY_RIGHT)
+            open_tab(&c, look, c.tab + 1);
+        else if (repeat & KEY_UP)
+            c.cursor = (c.cursor + count - 1) % count;
+        else if (repeat & KEY_DOWN)
+            c.cursor = (c.cursor + 1) % count;
+        else if (down & KEY_A)
+            confirmed = creator_pick(look, &c, c.cursor);
+        else if (down & KEY_B)
+            open_tab(&c, look, c.tab - 1);
+        else if (down & KEY_X)
+            randomise(look);
+        else if (down & KEY_START)
+            confirmed = true;
+        else
+            changed = false;
+        if (changed)
+        {
+            creator_draw(look, &c);
             look_apply(look);
         }
 

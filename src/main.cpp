@@ -261,7 +261,7 @@ static void draw_npc(void)
     NE_MaterialUse(npc_mat);
 
     // 32x60 at one sprite pixel to one screen pixel, leaning back like the player.
-    const float w = 0.125f, h = 0.4547f, up = 0.78f, back = -0.63f;
+    const float w = 0.0833f, h = 0.3031f, up = 0.78f, back = -0.63f;
     NE_PolyBegin(GL_QUAD);
     NE_PolyColor(RGB15(31, 31, 31));
     NE_PolyTexCoord(u0, 60);
@@ -312,7 +312,7 @@ static void draw_player(void)
     // A 64x64 billboard leaning back to face the camera (about 39 degrees down).
     // Sized so one sprite pixel is one screen pixel at the game camera: any other scale
     // drops or doubles pixels unevenly, because the DS has no texture filtering.
-    const float w = 0.25f, h = 0.485f, up = 0.78f, back = -0.63f;
+    const float w = 0.1667f, h = 0.3233f, up = 0.78f, back = -0.63f;
     NE_PolyBegin(GL_QUAD);
     NE_PolyColor(RGB15(31, 31, 31));
     NE_PolyTexCoord(0, 64);
@@ -333,16 +333,17 @@ static void draw_player(void)
 #endif
 
 // How far from the camera's tile a chunk centre can be and still be drawn.
-static const float VIEW_SIDE = 14.0f * CAM_ZOOM, VIEW_NORTH = 16.0f * CAM_ZOOM, VIEW_SOUTH = 9.0f * CAM_ZOOM;
+static const float VIEW_SIDE = 11.0f * CAM_ZOOM, VIEW_NORTH = 12.0f * CAM_ZOOM, VIEW_SOUTH = 7.0f * CAM_ZOOM;
 
 static void draw_scene(void)
 {
-    // Black 2 style: high and behind, tilted down at the player. At this distance a tile is
-    // 32 pixels wide at the player, so the 32x32 ground textures draw 1:1 and don't shimmer,
+    // Black 2 style: high and behind, tilted down at the player. High above the roofs with a
+    // narrow view, so buildings to the south hide less of the street. At this distance a tile is
+    // 48 pixels wide at the player, so the 48x48 ground textures draw 1:1 and don't shimmer,
     // and sideways movement is a whole number of pixels per frame.
     NE_CameraSet(camera,
-                 cam_x, 1.025f * CAM_ZOOM, cam_z + 1.16f * CAM_ZOOM,
-                 cam_x, 0.0f, cam_z - 0.10f,
+                 cam_x, 1.327f * CAM_ZOOM, cam_z + 1.502f * CAM_ZOOM,
+                 cam_x, 0.0f, cam_z - 0.067f,
                  0, 1, 0);
     NE_CameraUse(camera);
 
@@ -372,7 +373,7 @@ int main(int argc, char **argv)
     irqSet(IRQ_HBLANK, NE_HBLFunc);
 
     NE_Init3D();
-    NE_SetFov(50);
+    NE_SetFov(27);
     NE_AntialiasEnable(true); // smooth polygon edges
     NE_ClearColorSet(RGB15(4, 7, 14), 31, 63); // deep navy sea and sky
 
@@ -386,7 +387,7 @@ int main(int argc, char **argv)
     camera = NE_CameraCreate();
 
     NE_Material *town_mat = NE_MaterialCreate();
-    NE_MaterialTexLoad(town_mat, NE_PAL256, 128, 128, NE_TEXGEN_TEXCOORD, saltmere_tex_bin);
+    NE_MaterialTexLoad(town_mat, NE_PAL256, 256, 256, NE_TEXGEN_TEXCOORD, saltmere_tex_bin);
     NE_Palette *town_pal = NE_PaletteCreate();
     // Always a full 256 entries: with a shorter palette the last colour came out black.
     static u16 town_colours[256];
@@ -517,7 +518,7 @@ int main(int argc, char **argv)
         time_t now = time(NULL);
         if (now != fps_second)
         {
-            printf("\x1b[7;1HFPS: %2d  CPU: %3d%%  ", fps_frames, NE_GetCPUPercent());
+            printf("\x1b[7;1HFPS: %2d  CPU: %3d%%  Poly: %4d ", fps_frames, NE_GetCPUPercent(), GFX_POLYGON_RAM_USAGE);
             fps_second = now;
             fps_frames = 0;
         }
