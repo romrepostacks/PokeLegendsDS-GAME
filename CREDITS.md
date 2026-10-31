@@ -96,3 +96,8 @@ Hand-drawn LPC layers, recoloured. Layers are credited as that project lists the
 ### Long straight (`hair_long_straight`)
 
 - `hair/long_straight`: JaidynReiman, thecilekli, bluecarrot16. Licences: CC0. Source: https://opengameart.org/content/lpc-long-straight-hair-with-12-colors https://opengameart.org/content/lpc-hair https://opengameart.org/content/lpc-expanded-hair
+
+## Bike
+
+The bike is original work for this game, drawn by tools/art/paint_character.py. The rider's top half uses the LPC thrust and sit poses of the layers already listed.
+

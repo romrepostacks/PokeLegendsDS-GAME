@@ -43,6 +43,7 @@ LOOK_BOY = {
     "hat_colour": (140, 146, 156), "pompom": (232, 234, 238), "hair_colour": (112, 70, 44),
     "top_colour": (112, 118, 130), "trim": (196, 52, 52), "bottoms_colour": (184, 56, 52),
     "under_colour": (64, 56, 60), "shoe_colour": (124, 80, 48), "scarf_colour": (70, 170, 160),
+    "bike_colour": (196, 52, 52), "metal_colour": (200, 208, 220),
 }
 LOOK_GIRL = {
     **LOOK_BOY, "body": "female", "hair": "long", "top": "longcoat", "bottoms": "leggings",
@@ -292,6 +293,8 @@ def outline(img):
 def parts(look, anim, row, f):
     """One frame as (layer name, 64x64 image) pairs, bottom to top. The game combines the same
     layers on the DS, see tools/art/make_look.py."""
+    if anim == "ride":
+        return ride_parts(look, row, f)
     area = (f * 64, row * 64, (f + 1) * 64, (row + 1) * 64)
     body = look["body"]
     head_name = "heads_human_male" if body == "male" else "heads_human_female"
@@ -376,6 +379,241 @@ def cell(look, anim, row, f):
     for _, img in parts(look, anim, row, f):
         frame.alpha_composite(img)
     return frame
+
+
+# --- Bike -----------------------------------------------------------------------------
+# No bike exists in LPC, so the bike is drawn here. The rider is LPC poses: side views take the
+# arms from the thrust pose and the legs from the chair-sit pose, front and back views take the
+# whole chair-sit pose. In side views the legs are drawn here, following the crank, because the
+# sit pose's legs stick straight out. These are frames of an animation called "ride", with the
+# same layers as walking plus bike-back and bike-front.
+
+PHASES = 4
+SIT = ("sit", 2)
+ARMS_OUT = ("thrust", 4)
+PEDAL_Y = 58         # where the rider's feet end up
+
+
+def tube(d, a, b, col, dark, width=2):
+    """An outlined frame tube, lit from above."""
+    d.line((a, b), fill=OUTLINE, width=width + 2)
+    d.line((a, b), fill=dark, width=width)
+    d.line(((a[0], a[1] - (width - 1)), (b[0], b[1] - (width - 1))), fill=col)
+
+
+def wheel(d, cx, cy, phase, look):
+    metal = look["metal_colour"]
+    TYRE, RIM, SPOKE = shade(metal, 0.35), shade(metal, 1.1), shade(metal, 0.72)
+    d.ellipse((cx - 10, cy - 10, cx + 10, cy + 10), fill=OUTLINE)
+    d.ellipse((cx - 9, cy - 9, cx + 9, cy + 9), fill=TYRE)
+    d.ellipse((cx - 7, cy - 7, cx + 7, cy + 7), fill=RIM)
+    d.ellipse((cx - 6, cy - 6, cx + 6, cy + 6), fill=(0, 0, 0, 0))
+    a = phase * math.pi / 8
+    for s in (0, math.pi / 3, 2 * math.pi / 3):
+        x, y = math.cos(a + s) * 6, math.sin(a + s) * 6
+        d.line((cx - x, cy - y, cx + x, cy + y), fill=SPOKE)
+    d.rectangle((cx - 1, cy - 1, cx + 1, cy + 1), fill=RIM)
+
+
+def blank():
+    return Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+
+
+def bike_left(look, phase, bar):
+    """Touring bike, side view facing left. bar is where the rider's hand is."""
+    back, front = blank(), blank()
+    b, f = ImageDraw.Draw(back), ImageDraw.Draw(front)
+    col, dark = shade(look["bike_colour"], 1.15), rgba(look["bike_colour"])
+    deep = shade(look["bike_colour"], 0.65)
+    metal = look["metal_colour"]
+    TYRE, RIM = shade(metal, 0.35), shade(metal, 1.1)
+    hx, hy = bar
+    FRONT, REAR = (hx - 2, 53), (hx + 30, 53)
+    head = (hx + 3, hy + 6)
+    axle = (hx + 16, 54)
+    seat = (hx + 21, hy + 7)
+    wheel(b, *FRONT, phase, look)
+    wheel(b, *REAR, phase, look)
+    # Mudguards and a rear rack: it's a winter tourer.
+    b.arc((REAR[0] - 11, REAR[1] - 11, REAR[0] + 11, REAR[1] + 11), 180, 340, fill=deep, width=2)
+    b.arc((FRONT[0] - 11, FRONT[1] - 11, FRONT[0] + 11, FRONT[1] + 11), 200, 360, fill=deep, width=2)
+    tube(b, REAR, axle, col, dark, 1)
+    tube(b, REAR, seat, col, dark, 1)
+    tube(b, head, FRONT, col, dark)
+    tube(b, axle, head, col, dark)
+    tube(b, seat, head, col, dark)
+    tube(b, axle, seat, col, dark)
+    b.rectangle((seat[0] + 3, seat[1] + 2, REAR[0] + 3, seat[1] + 3), fill=OUTLINE)
+    b.rectangle((seat[0] - 3, seat[1] - 3, seat[0] + 4, seat[1] - 1), fill=OUTLINE)
+    b.line((seat[0] - 2, seat[1] - 3, seat[0] + 3, seat[1] - 3), fill=TYRE)
+    # Crank, over the rider's legs, turning.
+    a = phase * math.pi / 2
+    crank = (axle[0] + round(math.cos(a) * 5), axle[1] + round(math.sin(a) * 5))
+    f.ellipse((axle[0] - 3, axle[1] - 3, axle[0] + 3, axle[1] + 3), fill=OUTLINE)
+    f.ellipse((axle[0] - 2, axle[1] - 2, axle[0] + 2, axle[1] + 2), fill=RIM)
+    f.line((axle, crank), fill=OUTLINE, width=2)
+    f.rectangle((crank[0] - 2, crank[1], crank[0] + 2, crank[1] + 1), fill=OUTLINE)
+    # Handlebars under the hand.
+    tube(f, head, (hx + 2, hy + 1), col, dark, 1)
+    f.line((hx - 3, hy + 1, hx + 3, hy + 1), fill=OUTLINE, width=2)
+    return back, front
+
+
+def bike_end(look, phase, facing, bar_y):
+    """Front or back view: the wheel edge on, with the bars across."""
+    back, front = blank(), blank()
+    b, f = ImageDraw.Draw(back), ImageDraw.Draw(front)
+    col, dark = shade(look["bike_colour"], 1.15), rgba(look["bike_colour"])
+    near = f
+    metal = look["metal_colour"]
+    TYRE, SPOKE = shade(metal, 0.35), shade(metal, 0.72)
+    near.rectangle((29, bar_y + 3, 34, 63), fill=OUTLINE)
+    near.rectangle((30, bar_y + 3, 33, 62), fill=TYRE)
+    for y in range(bar_y + 3 + phase % 2, 62, 2):
+        near.line((31, y, 32, y), fill=SPOKE)
+    # Mudguard over the wheel.
+    near.rectangle((29, bar_y + 3, 34, bar_y + 8), fill=OUTLINE)
+    near.rectangle((30, bar_y + 3, 33, bar_y + 7), fill=dark)
+    near.line((30, bar_y + 3, 33, bar_y + 3), fill=col)
+    bars = f if facing == DOWN else b
+    bars.rectangle((19, bar_y - 1, 44, bar_y + 2), fill=OUTLINE)
+    bars.line((21, bar_y, 42, bar_y), fill=dark)
+    bars.line((21, bar_y + 1, 42, bar_y + 1), fill=SPOKE)
+    bars.rectangle((19, bar_y - 1, 22, bar_y + 2), fill=TYRE)
+    bars.rectangle((41, bar_y - 1, 44, bar_y + 2), fill=TYRE)
+    return back, front
+
+
+def lifted(img, dx, dy):
+    out = blank()
+    out.alpha_composite(img, (max(dx, 0), max(dy, 0)), (max(-dx, 0), max(-dy, 0)))
+    return out
+
+
+def pedal(img, row, phase):
+    """Seen end on, each leg rises and falls in turn."""
+    out = blank()
+    lift = (0, -2, -4, -2)
+    for side, box_ in enumerate(((0, 0, 32, 64), (32, 0, 64, 64))):
+        half = blank()
+        half.paste(img.crop(box_), box_[:2])
+        out.alpha_composite(lifted(half, 0, lift[(phase + side * 2) % 4]))
+    return out
+
+
+def trail(img, row, phase):
+    """Long hair and the scarf end stream a little behind."""
+    if row == LEFT or row == RIGHT:
+        dx = (1 + phase % 2) * (1 if row == LEFT else -1)
+        top = img.crop((0, 0, 64, 34))
+        out = blank()
+        out.paste(top, (0, 0))
+        out.paste(img.crop((0, 34, 64, 64)), (dx, 34))
+        return out
+    return img
+
+
+def body_box(look, pose, row):
+    anim, f = pose
+    area = (f * 64, row * 64, (f + 1) * 64, (row + 1) * 64)
+    return box(layer("body", look["body"], anim, area, tuple(look["skin"])))
+
+
+def ride_offsets(look, row):
+    """How far the legs and the top half move: (legs dy, top dy)."""
+    legs_dy = PEDAL_Y - body_box(look, SIT, row)[3]
+    return (legs_dy, legs_dy) if row in (UP, DOWN) else (0, -6)
+
+
+def knee_of(hip, foot):
+    """Where the knee goes for a thigh and shin of 10, bending forward (left)."""
+    hx, hy = hip
+    fx, fy = foot
+    dx, dy = fx - hx, fy - hy
+    d = math.hypot(dx, dy) or 1
+    bend = math.sqrt(max(0, 10.5 ** 2 - (d / 2) ** 2))
+    return (round((hx + fx) / 2 + dy / d * -bend), round((hy + fy) / 2 + dx / d * bend))
+
+
+def limb(d, a, b, colour, k=1.0):
+    d.line((a, b), fill=OUTLINE, width=6)
+    d.line((a, b), fill=shade(colour, 0.72 * k), width=4)
+    d.line(((a[0] - 1, a[1] - 1), (b[0] - 1, b[1] - 1)), fill=shade(colour, k), width=2)
+
+
+def side_leg(name, look, hip, foot, k):
+    """One leg, for one layer: leg, shorts or skirt over it, or the shoe."""
+    img = blank()
+    d = ImageDraw.Draw(img)
+    knee = knee_of(hip, foot)
+    if name.startswith("legs"):
+        colour = look["under_colour"] if name == "legs-under" else look["bottoms_colour"]
+        limb(d, hip, knee, colour, k)
+        limb(d, knee, foot, colour, k)
+    elif name.startswith("bottoms"):
+        limb(d, hip, knee, look["bottoms_colour"], k)
+    else:
+        fx, fy = foot
+        colour = look["shoe_colour"]
+        d.rounded_rectangle((fx - 5, fy - 3, fx + 2, fy + 2), 1, fill=OUTLINE)
+        d.rectangle((fx - 4, fy - 2, fx + 1, fy + 1), fill=shade(colour, k))
+        d.line((fx - 4, fy + 1, fx + 1, fy + 1), fill=shade(colour, 0.72 * k))
+    return img
+
+
+def ride_parts(look, row, phase):
+    pose = SIT if row in (UP, DOWN) else ARMS_OUT
+    legs_dy, top_dy = ride_offsets(look, row)
+    wear = parts(look, pose[0], row, pose[1])
+    lower = parts(look, SIT[0], row, SIT[1])
+    cut = 46 if pose == ARMS_OUT else 63
+    legs = [(n, img) for n, img in lower if n.split("-")[0] in ("legs", "feet", "bottoms")]
+    out = []
+    for name, img in wear:
+        if name.split("-")[0] in ("legs", "feet", "bottoms"):
+            continue
+        img = img.copy()
+        ImageDraw.Draw(img).rectangle((0, cut, 63, 63), fill=(0, 0, 0, 0))
+        img = lifted(img, 0, top_dy)
+        if name.startswith("hairback") or name == "scarf":
+            img = trail(img, row, phase)
+        out.append((name, img))
+    body_at = next(i for i, (n, _) in enumerate(out) if n == "body")
+    body = out[body_at][1]
+    if row in (LEFT, RIGHT):
+        # Find the hand: the outermost pixel of the arm.
+        px = body.load()
+        xs = [(x, y) for y in range(64) for x in range(64) if px[x, y][3]]
+        hand = min(xs) if row == LEFT else max(xs)
+        bar = hand if row == LEFT else (63 - hand[0], hand[1])
+        back, front = bike_left(look, phase, bar)
+        hip = (bar[0] + 20, bar[1] + 5)
+        axle = (bar[0] + 16, 54)
+        a = phase * math.pi / 2
+        drawn = []
+        for name, _ in legs:
+            near = (axle[0] + round(math.cos(a) * 5), axle[1] + round(math.sin(a) * 5))
+            far = (axle[0] - round(math.cos(a) * 5), axle[1] - round(math.sin(a) * 5))
+            img = side_leg(name, look, hip, far, 0.72)
+            img.alpha_composite(side_leg(name, look, hip, near, 1.0))
+            drawn.append((name, img))
+        if row == RIGHT:
+            back, front = back.transpose(Image.FLIP_LEFT_RIGHT), front.transpose(Image.FLIP_LEFT_RIGHT)
+            drawn = [(n, i.transpose(Image.FLIP_LEFT_RIGHT)) for n, i in drawn]
+        out[body_at + 1:body_at + 1] = drawn
+    else:
+        out[body_at + 1:body_at + 1] = [(n, pedal(lifted(i, 0, legs_dy), row, phase)) for n, i in legs]
+        back, front = bike_end(look, phase, row, 40)
+    return [("bike-back", back)] + out + [("bike-front", front)]
+
+
+def ride_head_top(look, row):
+    """Top of the head in a ride frame, for clipping hair under hats."""
+    pose = SIT if row in (UP, DOWN) else ARMS_OUT
+    anim, f = pose
+    area = (f * 64, row * 64, (f + 1) * 64, (row + 1) * 64)
+    head_name = "heads_human_male" if look["body"] == "male" else "heads_human_female"
+    return box(layer(head_name, look["body"], anim, area, tuple(look["skin"])))[1] + ride_offsets(look, row)[3]
 
 
 def sheet(look, anim):
