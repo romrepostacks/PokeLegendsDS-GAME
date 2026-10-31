@@ -1,0 +1,11 @@
+Creator options, built by tools/art/paint_character.py. Each option is on the boy and girl base in the front idle pose plus one side run frame, 3x. Any hair or clothing works on either body.
+hair-shapes.png: 8 shapes on each body, with front, run and back: short, crop, spiky, shaggy, wavy, ponytail, bob, braids.
+hats.png: none, pompom beanie, knit cap, baseball cap, hood, earmuffs.
+tops.png: quilted jacket, parka with fur collar, puffer vest, long coat.
+scarf.png: scarf off and on, as its own toggle.
+bottoms.png: trousers, leggings, shorts over leggings, skirt over leggings.
+shoes.png: snow boots, tall boots, sneakers.
+skin.png: 8 tones, light to deep. Eyes.png: 8 colours.
+colours-top, -hat, -bottoms, -shoes: the approved 30 colours. colours-hair: a new set of 30, 14 natural and 16 bright. boy and girl walk and run sheets: the two defaults.
+Fixed: the boy's strings no longer show on his back. The girl's long coat now ends at the knee, so her legs show in the walk.
+Skin tones are my own ramp, not LPC's named palettes. Eye colour barely shows at this size, so it is a subtle choice. Everything here is drawn in the tool; the game can't combine parts yet. That needs the creator build: combining the chosen layers into a sheet and copying one frame at a time to texture memory.

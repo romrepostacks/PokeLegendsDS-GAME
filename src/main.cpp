@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -6,8 +7,10 @@
 #include <fat.h>
 #include <nds.h>
 
-#include "player_pal_bin.h"
-#include "player_tex_bin.h"
+#include "look.h"
+#include "look_data.h"
+#include "npc_pal_bin.h"
+#include "npc_tex_bin.h"
 #include "saltmere.h"
 #include "saltmere_bin.h"
 #include "saltmere_pal_bin.h"
@@ -22,9 +25,11 @@ struct SaveData
 {
     u32 magic;
     u32 counter;
+    Look look;
 };
 
-static const u32 SAVE_MAGIC = 0x56533942; // "B9SV"
+static const u32 SAVE_MAGIC = 0x32533942; // "B9S2"
+static const u8 LOOK_VERSION = 2;
 
 enum class Backend { None, File, Cart };
 
@@ -70,6 +75,7 @@ static u8 spi_byte(u8 value, bool last)
 }
 
 // Writes up to one page (32 bytes for EEPROM, 256 for FLASH) at a page-aligned address.
+// SaveData has to stay within one page.
 static void cart_write(u32 address, const u8 *data, u32 length)
 {
     spi_byte(SPI_EEPROM_WREN, true);
@@ -110,12 +116,12 @@ static bool save_read(SaveData *data)
             return false;
         bool ok = fread(data, sizeof(*data), 1, f) == 1;
         fclose(f);
-        return ok && data->magic == SAVE_MAGIC;
+        return ok && data->magic == SAVE_MAGIC && data->look.version == LOOK_VERSION;
     }
     if (backend == Backend::Cart)
     {
         cardReadEeprom(0, (u8 *)data, sizeof(*data), cart_type);
-        return data->magic == SAVE_MAGIC;
+        return data->magic == SAVE_MAGIC && data->look.version == LOOK_VERSION;
     }
     return false;
 }
@@ -136,7 +142,7 @@ static bool save_write(SaveData *data)
         cart_write(0, (const u8 *)data, sizeof(*data));
         SaveData check;
         cardReadEeprom(0, (u8 *)&check, sizeof(check), cart_type);
-        return check.magic == data->magic && check.counter == data->counter;
+        return memcmp(&check, data, sizeof(check)) == 0;
     }
     return false;
 }
@@ -147,8 +153,7 @@ static bool save_write(SaveData *data)
 // The model is built at 1 tile = 0.25 units, centred on the map (see `make models`).
 static const float TILE = 0.25f;
 // Frames to cross one tile on foot, running (hold B) and on the bike (Select toggles it
-// for now; it becomes a key item later). Also the sprite sheet's row blocks, see
-// tools/art/make_player.py.
+// for now; it becomes a key item later).
 enum Mode { WALK, RUN, BIKE };
 static const int STEP_FRAMES[] = { 16, 8, 4 }; // Black 2 timing: run is 2x walk, bike 4x
 
@@ -159,9 +164,10 @@ static const int DY[] = { 1, -1, 0, 0 };
 struct Player
 {
     int tx, ty;  // tile
-    int dir;     // also the row in the sprite sheet
+    int dir;
     int step;    // frames left in the current step, 0 when standing
     int foot;    // which foot leads this step: walk frame 1 or 2
+    int pedal;   // bike pedal phase, one turn every 4 tiles
     int mode;    // Mode of the current step
     bool bike;   // riding the bike
 };
@@ -172,7 +178,11 @@ static const int CHUNK_TILES = 8;
 static const int CHUNK_COLS = SALTMERE_W / CHUNK_TILES;
 static const int CHUNK_ROWS = SALTMERE_H / CHUNK_TILES;
 static NE_Model *chunks[CHUNK_COLS * CHUNK_ROWS];
-static NE_Material *player_mat;
+static NE_Material *npc_mat;
+
+// The harbour NPC, standing by the fountain. Sheet: tools/art/make_npc.py.
+static const int NPC_X = 17, NPC_Y = 11;
+static const int NPC_CELL[] = { 2, 0, 1, 3 };   // DOWN, UP, LEFT, RIGHT
 static Player player;
 static float cam_x, cam_z;
 
@@ -182,6 +192,8 @@ static float tile_z(int ty) { return (ty + 0.5f - SALTMERE_H / 2.0f) * TILE; }
 static bool walkable(int tx, int ty)
 {
     if (tx < 0 || ty < 0 || tx >= SALTMERE_W || ty >= SALTMERE_H)
+        return false;
+    if (tx == NPC_X && ty == NPC_Y)
         return false;
     char t = saltmere_map[ty][tx];
     return t == '.' || t == ',' || t == ':' || t == 'r' || t == 'P';
@@ -219,6 +231,7 @@ static void player_update(u32 held, u32 down)
     player.ty = ny;
     player.step = STEP_FRAMES[player.mode];
     player.foot = player.foot == 1 ? 2 : 1;
+    player.pedal = (player.pedal + 1) % 4;
 }
 
 // Where the player is drawn this frame: between the previous and the current tile.
@@ -229,50 +242,92 @@ static void player_pos(float *x, float *z)
     *z = tile_z(player.ty) - DY[player.dir] * TILE * t;
 }
 
-static void draw_player(void)
+// Faces the player when they come within 3 tiles, otherwise looks out across the plaza.
+static int npc_facing(void)
 {
-    float px, pz;
-    player_pos(&px, &pz);
+    int dx = player.tx - NPC_X, dy = player.ty - NPC_Y;
+    if (abs(dx) + abs(dy) > 3)
+        return DOWN;
+    if (abs(dx) > abs(dy))
+        return dx < 0 ? LEFT : RIGHT;
+    return dy < 0 ? UP : DOWN;
+}
 
-    // On foot, each tile plays half stride, full stride, half stride, passing, on one leg
-    // and then the other. On the bike the pedals keep turning and coast when stopped.
+static void draw_npc(void)
+{
+    int u0 = NPC_CELL[npc_facing()] * 32;
+
+    NE_ViewPush();
+    NE_ViewMove(tile_x(NPC_X), 0, tile_z(NPC_Y));
+    NE_PolyFormat(31, 2, (NE_LightEnum)0, NE_CULL_NONE, (NE_OtherFormatEnum)0);
+    NE_MaterialUse(npc_mat);
+
+    // 32x60 at one sprite pixel to one screen pixel, leaning back like the player.
+    const float w = 0.0833f, h = 0.3031f, up = 0.78f, back = -0.63f;
+    NE_PolyBegin(GL_QUAD);
+    NE_PolyColor(RGB15(31, 31, 31));
+    NE_PolyTexCoord(u0, 60);
+    NE_PolyVertex(-w, 0, 0);
+    NE_PolyTexCoord(u0 + 32, 60);
+    NE_PolyVertex(w, 0, 0);
+    NE_PolyTexCoord(u0 + 32, 0);
+    NE_PolyVertex(w, h * up, h * back);
+    NE_PolyTexCoord(u0, 0);
+    NE_PolyVertex(-w, h * up, h * back);
+    NE_PolyEnd();
+
+    NE_ViewPop();
+}
+
+// Picks this frame's sprite. Two steps play the sheet's 8-frame cycle, four frames to a tile.
+// On the bike the pedals turn with the wheels and stop at phase 0.
+static void player_compose(const Look *look)
+{
+    static const int ROWS[] = { 2, 0, 1, 3 }; // DOWN, UP, LEFT, RIGHT
     int frame = 0;
-    if (player.step > 0 && player.mode == BIKE)
+    if (player.bike)
     {
-        frame = player.foot;
+        frame = LOOK_RIDE_FRAME + (player.step > 0 ? player.pedal : 0);
     }
     else if (player.step > 0)
     {
         int len = STEP_FRAMES[player.mode];
         int quarter = (len - player.step) * 4 / len;
-        if (quarter < 3)
-            frame = (player.foot == 1 ? 1 : 3) + (quarter == 1 ? 1 : 0);
+        int cycle = (player.foot == 1 ? 0 : 4) + quarter;
+        frame = player.mode == RUN ? LOOK_RUN_FRAME + cycle : 1 + cycle;
     }
-    int u0 = frame * 32, v0 = (player.mode * 4 + player.dir) * 32;
+    int row = ROWS[player.dir];
 #ifdef TEST_POSE
     // Test builds only: show one sprite frame, for screenshots.
-    u0 = TEST_POSE * 32;
-    v0 = (TEST_MODE * 4 + TEST_DIR) * 32;
+    frame = TEST_POSE;
+    row = ROWS[TEST_DIR];
 #endif
+    look_compose(look, row, frame);
+}
+
+static void draw_player(void)
+{
+    float px, pz;
+    player_pos(&px, &pz);
 
     NE_ViewPush();
     NE_ViewMove(px, 0, pz);
     NE_PolyFormat(31, 1, (NE_LightEnum)0, NE_CULL_NONE, (NE_OtherFormatEnum)0);
-    NE_MaterialUse(player_mat);
+    NE_MaterialUse(look_material());
 
-    // A 32x32 billboard leaning back to face the camera (about 39 degrees down).
+    // A 64x64 billboard leaning back to face the camera (about 39 degrees down).
     // Sized so one sprite pixel is one screen pixel at the game camera: any other scale
     // drops or doubles pixels unevenly, because the DS has no texture filtering.
-    const float w = 0.125f, h = 0.2425f, up = 0.78f, back = -0.63f;
+    const float w = 0.1667f, h = 0.3233f, up = 0.78f, back = -0.63f;
     NE_PolyBegin(GL_QUAD);
     NE_PolyColor(RGB15(31, 31, 31));
-    NE_PolyTexCoord(u0, v0 + 32);
+    NE_PolyTexCoord(0, 64);
     NE_PolyVertex(-w, 0, 0);
-    NE_PolyTexCoord(u0 + 32, v0 + 32);
+    NE_PolyTexCoord(64, 64);
     NE_PolyVertex(w, 0, 0);
-    NE_PolyTexCoord(u0 + 32, v0);
+    NE_PolyTexCoord(64, 0);
     NE_PolyVertex(w, h * up, h * back);
-    NE_PolyTexCoord(u0, v0);
+    NE_PolyTexCoord(0, 0);
     NE_PolyVertex(-w, h * up, h * back);
     NE_PolyEnd();
 
@@ -284,16 +339,17 @@ static void draw_player(void)
 #endif
 
 // How far from the camera's tile a chunk centre can be and still be drawn.
-static const float VIEW_SIDE = 14.0f * CAM_ZOOM, VIEW_NORTH = 16.0f * CAM_ZOOM, VIEW_SOUTH = 9.0f * CAM_ZOOM;
+static const float VIEW_SIDE = 11.0f * CAM_ZOOM, VIEW_NORTH = 12.0f * CAM_ZOOM, VIEW_SOUTH = 7.0f * CAM_ZOOM;
 
 static void draw_scene(void)
 {
-    // Black 2 style: high and behind, tilted down at the player. At this distance a tile is
-    // 32 pixels wide at the player, so the 32x32 ground textures draw 1:1 and don't shimmer,
+    // Black 2 style: high and behind, tilted down at the player. High above the roofs with a
+    // narrow view, so buildings to the south hide less of the street. At this distance a tile is
+    // 48 pixels wide at the player, so the 48x48 ground textures draw 1:1 and don't shimmer,
     // and sideways movement is a whole number of pixels per frame.
     NE_CameraSet(camera,
-                 cam_x, 1.025f * CAM_ZOOM, cam_z + 1.16f * CAM_ZOOM,
-                 cam_x, 0.0f, cam_z - 0.10f,
+                 cam_x, 1.327f * CAM_ZOOM, cam_z + 1.502f * CAM_ZOOM,
+                 cam_x, 0.0f, cam_z - 0.067f,
                  0, 1, 0);
     NE_CameraUse(camera);
 
@@ -312,6 +368,7 @@ static void draw_scene(void)
         }
     }
 
+    draw_npc();
     draw_player();
 }
 
@@ -322,21 +379,17 @@ int main(int argc, char **argv)
     irqSet(IRQ_HBLANK, NE_HBLFunc);
 
     NE_Init3D();
-    NE_SetFov(50);
+    NE_SetFov(27);
     NE_AntialiasEnable(true); // smooth polygon edges
     NE_ClearColorSet(RGB15(4, 7, 14), 31, 63); // deep navy sea and sky
 
-    // Bottom screen console on VRAM H, so it can't collide with Nitro Engine's
-    // texture banks (A-D).
-    PrintConsole bottomScreen;
-    videoSetModeSub(MODE_0_2D);
+    // The bottom screen uses VRAM H, so it can't collide with Nitro Engine's texture banks (A-D).
     vramSetBankH(VRAM_H_SUB_BG);
-    consoleInit(&bottomScreen, 0, BgType_Text4bpp, BgSize_T_256x256, 2, 1, false, true);
 
     camera = NE_CameraCreate();
 
     NE_Material *town_mat = NE_MaterialCreate();
-    NE_MaterialTexLoad(town_mat, NE_PAL256, 128, 128, NE_TEXGEN_TEXCOORD, saltmere_tex_bin);
+    NE_MaterialTexLoad(town_mat, NE_PAL256, 256, 256, NE_TEXGEN_TEXCOORD, saltmere_tex_bin);
     NE_Palette *town_pal = NE_PaletteCreate();
     // Always a full 256 entries: with a shorter palette the last colour came out black.
     static u16 town_colours[256];
@@ -352,13 +405,17 @@ int main(int argc, char **argv)
         NE_ModelSetMaterial(chunks[i], town_mat);
     }
 
-    player_mat = NE_MaterialCreate();
-    NE_MaterialTexLoad(player_mat, NE_PAL16, 256, 512,
+    npc_mat = NE_MaterialCreate();
+    NE_MaterialTexLoad(npc_mat, NE_PAL256, 128, 64,
                        (NE_TextureFlags)(NE_TEXGEN_TEXCOORD | NE_TEXTURE_COLOR0_TRANSPARENT),
-                       player_tex_bin);
-    NE_Palette *player_pal = NE_PaletteCreate();
-    NE_PaletteLoad(player_pal, player_pal_bin, 16, NE_PAL16);
-    NE_MaterialSetPalette(player_mat, player_pal);
+                       npc_tex_bin);
+    NE_Palette *npc_pal = NE_PaletteCreate();
+    static u16 npc_colours[256];
+    memcpy(npc_colours, npc_pal_bin, npc_pal_bin_size);
+    NE_PaletteLoad(npc_pal, npc_colours, 256, NE_PAL256);
+    NE_MaterialSetPalette(npc_mat, npc_pal);
+
+    look_init();
 
     for (int y = 0; y < SALTMERE_H; y++)
         for (int x = 0; x < SALTMERE_W; x++)
@@ -375,10 +432,26 @@ int main(int argc, char **argv)
     player_pos(&cam_x, &cam_z);
 
     save_init(argc, argv);
-    SaveData data = { SAVE_MAGIC, 0 };
+    SaveData data = { SAVE_MAGIC, 0, {} };
     bool loaded = save_read(&data);
+#ifdef TEST_NEW
+    loaded = false; // test builds: always show the creator
+#endif
     if (!loaded)
-        data = { SAVE_MAGIC, 0 };
+    {
+        // A new game: make the trainer, then keep the choices.
+        data = { SAVE_MAGIC, 0, {} };
+        srand(time(NULL));
+        look_default(&data.look);
+        creator_run(&data.look);
+        data.look.version = LOOK_VERSION;
+        save_write(&data);
+    }
+    look_apply(&data.look);
+
+    PrintConsole bottomScreen;
+    videoSetModeSub(MODE_0_2D);
+    consoleInit(&bottomScreen, 0, BgType_Text4bpp, BgSize_T_256x256, 2, 1, false, true);
 
     printf("\x1b[1;1HPoke Legends: Beyond the Nine");
     printf("\x1b[3;1HPort Saltmere");
@@ -408,6 +481,7 @@ int main(int argc, char **argv)
     while (1)
     {
         NE_WaitForVBL((NE_UpdateFlags)0);
+        look_upload();
         scanKeys();
         u32 down = keysDown();
 
@@ -415,7 +489,10 @@ int main(int argc, char **argv)
 #ifdef TEST_KEYS
         // Test builds only: hold these keys for 36 frames, then read the tile to check speed.
         static int frame;
-        if (frame++ < 36)
+#ifndef TEST_FRAMES
+#define TEST_FRAMES 36
+#endif
+        if (frame++ < TEST_FRAMES)
             held |= TEST_KEYS;
 #endif
         player_update(held, down);
@@ -433,6 +510,7 @@ int main(int argc, char **argv)
             printf("\x1b[21;1H%s", ok ? "Saved.      " : "Save FAILED.");
         }
 
+        player_compose(&data.look);
         NE_Process(draw_scene);
 
         // Console writes are slow, so only update these when they change.
@@ -446,7 +524,7 @@ int main(int argc, char **argv)
         time_t now = time(NULL);
         if (now != fps_second)
         {
-            printf("\x1b[7;1HFPS: %2d  CPU: %3d%%  ", fps_frames, NE_GetCPUPercent());
+            printf("\x1b[7;1HFPS: %2d  CPU: %3d%%  Poly: %4d ", fps_frames, NE_GetCPUPercent(), GFX_POLYGON_RAM_USAGE);
             fps_second = now;
             fps_frames = 0;
         }

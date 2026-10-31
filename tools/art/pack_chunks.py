@@ -22,7 +22,7 @@ for name in sorted(os.listdir(obj_dir)):
     x, y = map(int, name[:-4].split("_"))
     path = os.path.join(obj_dir, name)
     dl = path[:-4] + ".dl"
-    subprocess.run([sys.executable, obj2dl, "--input", path, "--output", dl, "--texture", "128", "128",
+    subprocess.run([sys.executable, obj2dl, "--input", path, "--output", dl, "--texture", "256", "256",
                     "--use-vertex-color", "--scale", "0.25"], check=True, stdout=subprocess.DEVNULL)
     with open(dl, "rb") as f:
         data = f.read()

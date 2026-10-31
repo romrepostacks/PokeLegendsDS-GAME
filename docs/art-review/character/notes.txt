@@ -1,0 +1,6 @@
+overview.png: all six looks. Columns: front, back, side, side walk, run stride 1, run stride 2.
+boy-default.png: current trainer (knit cap, parka, trousers, boots).
+boy-blue.png, boy-pink.png: colour swaps of the same pixels, to show the palette approach.
+girl-default.png: girl base. Long hair, lashes, belted parka with a flared hem. Same outfit parts.
+girl-blue.png, girl-pink.png: colour swaps. Unsure: whether the hair reads well from the side.
+All frames at 4x. Not yet layered: the hat, top, bottoms and shoes split comes after the look is approved.

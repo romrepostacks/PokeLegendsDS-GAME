@@ -1,4 +1,5 @@
-# Draws the Port Saltmere texture atlas: 128x128, sixteen 32x32 cells, one per surface.
+# Draws the Port Saltmere texture atlas: 256x256, sixteen 48x48 cells, one per surface.
+# Art is laid out on a 32-unit grid and drawn at 1.5 texels per unit.
 # The Blender script maps each face onto one cell (see CELLS in build_saltmere.py), and
 # vertex colours tint the plain walls per building. Kaelmoor palette: pale stone, snow,
 # cold water, warm wood.
@@ -6,15 +7,16 @@
 #   python tools/art/make_atlas.py art/textures/saltmere.png
 #
 # Colours are snapped to the DS's 15-bit range, and the sheet stays under 256 colours,
-# so it converts to an 8bpp paletted texture (16 KB of VRAM).
+# so it converts to an 8bpp paletted texture (64 KB of VRAM).
 
 import random
 import sys
 
 from PIL import Image
 
-C = 32
-img = Image.new("RGB", (128, 128))
+C = 32       # art units per cell
+SIZE = 48    # texels per cell
+img = Image.new("RGB", (256, 256))
 rng = random.Random(9)
 
 
@@ -23,7 +25,9 @@ def snap(c):
 
 
 def put(cell, x, y, c):
-    img.putpixel(((cell % 4) * C + x, (cell // 4) * C + y), snap(c))
+    for ty in range(y * SIZE // C, (y + 1) * SIZE // C):
+        for tx in range(x * SIZE // C, (x + 1) * SIZE // C):
+            img.putpixel(((cell % 4) * SIZE + tx, (cell // 4) * SIZE + ty), snap(c))
 
 
 def fill(cell, shades, weights=None):
@@ -56,7 +60,7 @@ rect(0, 16, 16, 17, C - 1, JOINT)
 # 1: cobbles under a thin dusting of snow
 for y in range(C):
     for x in range(C):
-        c = img.getpixel((x, y))
+        c = img.getpixel((x * SIZE // C, y * SIZE // C))
         stone = (x + (4 if (y // 8) % 2 else 0)) // 8 + y // 8
         put(1, x, y, (236, 242, 250) if stone % 3 else c)  # snow on two stones in three
 

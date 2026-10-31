@@ -31,9 +31,16 @@ OBJ2DL		:= $(BLOCKSDSEXT)/nitro-engine/tools/obj2dl/obj2dl.py
 
 IMG2DS		:= $(BLOCKSDSEXT)/nitro-engine/tools/img2ds/img2ds.py
 
-.PHONY: models textures
+# Every character option, packed for the game. Needs the LPC generator's files; the output
+# is committed, so a plain `make` doesn't.
+LPC		?= ../lpc-generator
+
+.PHONY: models textures look
+look:
+	$(PYTHON) tools/art/make_look.py $$(cygpath -w $(LPC)) data/textures include/look_data.h
+
 models: data/models/saltmere.bin
-textures: data/textures/player_tex.bin data/textures/saltmere_tex.bin
+textures: data/textures/player_tex.bin data/textures/saltmere_tex.bin data/textures/npc_tex.bin
 
 data/models/saltmere.bin: maps/saltmere.h tools/blender/build_saltmere.py tools/art/pack_chunks.py
 	@rm -rf build/saltmere
@@ -45,6 +52,12 @@ data/models/saltmere.bin: maps/saltmere.h tools/blender/build_saltmere.py tools/
 # Pixel art is drawn by scripts, then converted to paletted DS textures.
 art/sprites/player.png: tools/art/make_player.py
 	$(PYTHON) -I $< $@
+
+art/sprites/npc.png: art/player/kyle-player-lpc.png tools/art/make_npc.py
+	$(PYTHON) -I tools/art/make_npc.py $< $@
+
+data/textures/npc_tex.bin: art/sprites/npc.png
+	$(PYTHON) $$(cygpath -w $(IMG2DS)) --input $< --name npc --output data/textures --format PAL256
 
 art/textures/saltmere.png: tools/art/make_atlas.py
 	$(PYTHON) -I $< $@

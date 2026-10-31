@@ -1,0 +1,8 @@
+Painted characters from Kyle's picks: boy 2 (grey beanie, brown hair, grey padded jacket with red straps, red trousers, brown boots) and girl 2 (teal beanie, wavy blonde hair, teal scarf, long teal coat, brown boots).
+Made by tools/art/paint_character.py. All 64x64 frames, 4 directions, walk 9 frames, run 8 frames.
+overview-x4.png: idle front, left, right, back for both.
+<name>-idle(.png, -x4.png): idle frames. <name>-walk and <name>-run (.png, -x4.png): full 4-direction strips, rows up, left, down, right. <name>-walk-sheet.png, -run-sheet.png: transparent sheets.
+Painted here: hat, hair, scarf, long coat, quilting and straps. These are drawn per facing and anchored to the LPC head and torso in every frame, so they move with the animation.
+From LPC, recoloured and credited: body, head, eyes, trousers, leggings, shoes, boots, and the jacket shape.
+Colours are per part and each part has its own shades: hat, hair, coat, trousers, shoes, scarf. Boy uses 43 colours, girl 39 across a walk sheet.
+Known issues: side-view hair is blocky and does not swing. The girl's long coat hides her legs in the walk. Jacket quilting is thin at this size. Not in the game yet.

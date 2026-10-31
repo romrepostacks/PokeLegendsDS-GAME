@@ -1,0 +1,1 @@
+Hair now uses hand-drawn LPC layers, recoloured with the 30 hair colours. hair-styles: front, side run, back on each body. hair-with-hats: every hair with each hat. colours-hair: the colour set. -1x files are unscaled.

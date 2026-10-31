@@ -1,0 +1,10 @@
+LPC prototype: 3 boys and 3 girls at native 64x64 frames, built from Universal LPC layers by tools/art/lpc_compose.py. Layer credits are in CREDITS.md. The LPC source stays outside this repo.
+overview.png (1x), overview-x2.png: columns are front, back, side, 4 side walk frames, 4 side run frames.
+<name>.png and <name>-x4.png: one strip per character. <name>-walk-sheet.png, <name>-run-sheet.png: full 4-direction sheets.
+boy-1-climber: spiked hair, red top, tan cuffed trousers, boots.
+boy-2-guide: green hood over blond hair. The hood hides the hair, so it may need dropping.
+boy-3-sailor: blue cap, cream scarf, cardigan. The cap layer has a swept shape that looks wrong for winter.
+girl-1-guide: long wavy blonde hair, scarf, teal top (concept girl 3).
+girl-2-researcher: auburn high ponytail, white top, green belt and boots (concept girl 2). The belt has no run art, so it disappears when running.
+girl-3-sailor: red cap, bob, navy cardigan (concept girl 4). Same cap problem. LPC has no beret.
+LPC has no real winter coat for the female body with run frames; tops are long sleeves, so a coat would need drawing or editing.

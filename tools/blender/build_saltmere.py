@@ -4,7 +4,7 @@
 #
 #   blender -b --factory-startup --python tools/blender/build_saltmere.py -- OUT_DIR OUT.blend
 #
-# Every face maps onto one 32x32 cell of art/textures/saltmere.png (tools/art/make_atlas.py),
+# Every face maps onto one 48x48 cell of art/textures/saltmere.png (tools/art/make_atlas.py),
 # and its vertex colour tints that cell. One tile = 1 Blender unit. Blender X = column,
 # -Y = row (north is +Y), Z = height. The model is centred on the origin, because DS
 # vertices only reach +-8 units even after obj2dl's scaling (0.25 per tile, so up to 64 tiles).
@@ -30,8 +30,10 @@ COBBLE, DUSTED, SNOW, PLANK, WATER, WALL, WINDOW, DOOR = range(8)
 ROOF, EAVES, STRIPES, LAMP, CRATE, DARKWOOD, QUAY, ICE = range(8, 16)
 
 WATER_Z = -0.4
-FLOOR = 1.0          # storey height
-ROOF_Z = 2.0         # walls go up two storeys
+GROUND = 1.6         # ground floor, tall enough for a door 1.5 times the trainer's height
+UPPER = 1.0          # the extra storey on big buildings
+EAVES_H = 0.6        # the band under the roof
+ROOF_Z = GROUND + EAVES_H
 RIDGE = 0.9          # roof height above the walls
 WHITE = (1.0, 1.0, 1.0)
 # Pastel house colours: pale blue, cream, pale green, rose
@@ -50,9 +52,9 @@ def use_chunk(c, r):
 def cell_uv(cell, u, v):
     """(u, v) in 0-1 inside a cell -> atlas UV, inset half a texel so cells don't bleed."""
     cx, cy = cell % 4, cell // 4
-    x = cx * 32 + 0.5 + u * 31
-    y = cy * 32 + 0.5 + (1 - v) * 31
-    return (x / 128, 1 - y / 128)
+    x = cx * 48 + 0.5 + u * 47
+    y = cy * 48 + 0.5 + (1 - v) * 47
+    return (x / 256, 1 - y / 256)
 
 
 def poly(corners, cell, tint=WHITE, corner_uv=None):
@@ -127,7 +129,7 @@ def building(r0, c0, r1, c1, i):
     w, d = c1 - c0 + 1, r1 - r0 + 1
     big = w * d >= 20
     tint = TINTS[i % len(TINTS)]
-    wall_top = ROOF_Z + (FLOOR if big else 0)
+    wall_top = ROOF_Z + (UPPER if big else 0)
     x0, x1, y0, y1 = c0, c1 + 1, -r1 - 1, -r0  # y0 is the south face
     door_c = (c0 + c1) // 2
     # South and north faces, one panel per tile; doors face south onto open ground.
@@ -137,19 +139,19 @@ def building(r0, c0, r1, c1, i):
             if n is None or n == "#":
                 continue
             ground_cell = DOOR if (r == r1 + 1 and c == door_c and walkable(n)) else WINDOW
-            side(xa, ya, xb, yb, 0, FLOOR, ground_cell, tint)
-            for z in range(1, int(wall_top) - 1):
-                side(xa, ya, xb, yb, z, z + 1, WINDOW, tint)
-            side(xa, ya, xb, yb, wall_top - 1, wall_top, EAVES, tint)
+            side(xa, ya, xb, yb, 0, GROUND, ground_cell, tint)
+            if big:
+                side(xa, ya, xb, yb, GROUND, GROUND + UPPER, WINDOW, tint)
+            side(xa, ya, xb, yb, wall_top - EAVES_H, wall_top, EAVES, tint)
     for r in range(r0, r1 + 1):
         for c, xa, ya, yb in ((c0 - 1, x0, -r, -r - 1), (c1 + 1, x1, -r - 1, -r)):
             n = tile(r, c)
             if n is None or n == "#":
                 continue
-            side(xa, ya, xa, yb, 0, FLOOR, WINDOW, tint)
-            for z in range(1, int(wall_top) - 1):
-                side(xa, ya, xa, yb, z, z + 1, WINDOW, tint)
-            side(xa, ya, xa, yb, wall_top - 1, wall_top, EAVES, tint)
+            side(xa, ya, xa, yb, 0, GROUND, WINDOW, tint)
+            if big:
+                side(xa, ya, xa, yb, GROUND, GROUND + UPPER, WINDOW, tint)
+            side(xa, ya, xa, yb, wall_top - EAVES_H, wall_top, EAVES, tint)
     # Roof: the ridge runs along the long side, gables close the short ends.
     o = 0.15
     top = wall_top + RIDGE * (1.3 if big else 1.0)
