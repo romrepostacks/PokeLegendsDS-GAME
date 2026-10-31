@@ -1,0 +1,10 @@
+Concept art only, for choosing a direction. Made locally with ComfyUI and SDXL base. Prompts name no game or character. These are reference, not game assets.
+boy-1.jpg: arctic explorer in a big hooded parka. Came out as line art with no colour.
+boy-2.jpg: polar guide, blond, glasses, green jacket, navy trousers. Cleanest male turnaround.
+boy-3.jpg: climber, spiky hair, teal jacket, tan trousers, backpack.
+boy-4.jpg: sailor explorer in a long grey coat and peaked cap. Sheet is scattered, only the left figures are complete.
+girl-1.jpg: explorer in a belted red coat with a fur collar and tall boots. Parts are scattered on the right.
+girl-2.jpg: researcher, auburn hair, white and green belted coat, leggings, boots.
+girl-3.jpg: guide, long wavy blonde hair, teal coat, scarf, leggings, tall boots.
+girl-4.jpg: sailor explorer, navy double-breasted flared coat, beret, shoulder bag, tall boots.
+Sprite note: a full body like these needs a taller frame. Slim bodies with a visible waist, hips and shoulders would need about 32x48 instead of 32x32.
