@@ -130,12 +130,12 @@ def stage():
     d.rectangle((0, 128, 255, 255), fill=SNOW)
     for i in range(60):
         d.point(((i * 97) % 256, (i * 53) % 128), fill=FLAKE)
-    d.ellipse((76, 138, 180, 158), fill=PAD)
-    d.ellipse((88, 141, 168, 155), fill=PAD2)
+    d.ellipse((76, 132, 180, 152), fill=PAD)
+    d.ellipse((88, 135, 168, 149), fill=PAD2)
     d.rounded_rectangle((6, 6, 150, 24), 4, fill=PLATE, outline=LINE)
     m = mask("CHOOSE YOUR PARTNER")
     d.bitmap((78 - m.width // 2, 10), m, fill=PTEXT)
-    d.rounded_rectangle((2, 156, 253, 189), 4, fill=PLATE, outline=LINE)
+    d.rounded_rectangle((2, 151, 253, 189), 4, fill=PLATE, outline=LINE)
     q = im.quantize(16, dither=Image.Dither.NONE)
     p = q.getpalette()[:48]
     colours = [pal15(p[i:i + 3]) for i in range(0, len(p), 3)]

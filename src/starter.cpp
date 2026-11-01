@@ -197,8 +197,8 @@ static void starter_scene(void)
     NE_2DViewInit();
     NE_PolyFormat(31, 0, (NE_LightEnum)0, NE_CULL_NONE, (NE_OtherFormatEnum)0);
     NE_2DDrawTexturedQuad(0, 0, 256, 256, 3, stage_mat);
-    NE_2DDrawTexturedQuad(64, 22, 192, 150, 1, battle_mat);
-    NE_2DDrawTexturedQuad(0, 157, 256, 189, 1, info_mat);
+    NE_2DDrawTexturedQuad(64, 16, 192, 144, 1, battle_mat);
+    NE_2DDrawTexturedQuad(0, 154, 256, 186, 1, info_mat);
 }
 
 u16 starter_run(void)
