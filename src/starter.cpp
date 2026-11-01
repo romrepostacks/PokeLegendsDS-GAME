@@ -37,7 +37,8 @@ const char *starter_name(u16 dex)
 // Bottom screen layout, in tiles.
 static const int SHOWN = 5;             // generations on screen at once
 static const int CELL_W = 5, PITCH = 6; // a cell and the gap after it
-static const int CELL_H = 5, GEN_ROW = 2, GRID_ROW = 4, BUTTON_ROW = 20;
+static const int CELL_H = 5, ROW_PITCH = 6;
+static const int GEN_ROW = 0, GRID_X = 1, GRID_ROW = 2, BUTTON_ROW = 20;
 static const int LEFT_END = 7, RIGHT_START = 24, YES_END = 15;
 
 struct Picker
@@ -51,6 +52,8 @@ static u16 *icon_gfx[3 * SHOWN];
 
 static int row_of(int i) { return i / STARTER_GENS; }
 static int gen_of(int i) { return i % STARTER_GENS; }
+static int cell_x(int c) { return GRID_X + c * PITCH; }
+static int cell_y(int r) { return GRID_ROW + r * ROW_PITCH; }
 
 // Scrolls so the cursor's generation is on screen.
 static void follow(Picker *p)
@@ -83,29 +86,24 @@ static void picker_draw(const Picker *p)
     dmaFillHalfWords(0, ui_panel_map(), 2048);
     char line[32];
 
-    ui_panel(0, 0, 31, 2, BANK_PANEL);
     if (p->asking)
     {
+        ui_panel(0, GEN_ROW, 31, 2, BANK_PANEL);
         snprintf(line, sizeof(line), "Choose %s?", STARTER_NAMES[p->cursor]);
-        ui_text(1, 0, line, BANK_GOLD_TEXT);
-    }
-    else
-    {
-        snprintf(line, sizeof(line), "Gen %d", gen_of(p->cursor) + 1);
-        ui_text(1, 0, line, BANK_GOLD_TEXT);
-        ui_text(7, 0, STARTER_NAMES[p->cursor], BANK_TEXT);
-        const char *type = STARTER_TYPES[row_of(p->cursor)];
-        ui_text(30 - strlen(type), 0, type, BANK_TEXT);
+        ui_text(1, GEN_ROW, line, BANK_GOLD_TEXT);
     }
 
     for (int c = 0; c < SHOWN; c++)
     {
-        snprintf(line, sizeof(line), "Gen %d", p->first + c + 1);
-        ui_text(c * PITCH, GEN_ROW, line, p->first + c == gen_of(p->cursor) ? BANK_GOLD_TEXT : BANK_TEXT);
+        if (!p->asking)
+        {
+            snprintf(line, sizeof(line), "Gen %d", p->first + c + 1);
+            ui_text(cell_x(c), GEN_ROW, line, p->first + c == gen_of(p->cursor) ? BANK_GOLD_TEXT : BANK_TEXT);
+        }
         for (int r = 0; r < 3; r++)
         {
             int i = r * STARTER_GENS + p->first + c, slot = r * SHOWN + c;
-            int x = c * PITCH, y = GRID_ROW + r * CELL_H;
+            int x = cell_x(c), y = cell_y(r);
             ui_panel(x, y, CELL_W, CELL_H, i == p->cursor ? BANK_FOCUS : BANK_PANEL);
             dmaCopy(art(i)->icon, icon_gfx[slot], sizeof(art(i)->icon));
             dmaCopy(art(i)->palette, SPRITE_PALETTE_SUB + slot * 16, sizeof(art(i)->palette));
@@ -116,7 +114,7 @@ static void picker_draw(const Picker *p)
 
     if (p->asking)
     {
-        ui_panel(0, BUTTON_ROW, YES_END, 2, BANK_FOCUS);
+        ui_panel(0, BUTTON_ROW, YES_END, 2, BANK_SELECTED);
         ui_text(1, BUTTON_ROW, "A", BANK_GOLD_TEXT);
         ui_text(3, BUTTON_ROW, "Yes", BANK_TEXT);
         ui_panel(YES_END + 1, BUTTON_ROW, 31 - YES_END - 1, 2, BANK_PANEL);
@@ -133,6 +131,28 @@ static void picker_draw(const Picker *p)
         ui_panel(RIGHT_START, BUTTON_ROW, 31 - RIGHT_START, 2, BANK_PANEL);
         ui_text(RIGHT_START + 3, BUTTON_ROW, "R >", p->first < STARTER_GENS - SHOWN ? BANK_TEXT : BANK_ICON);
     }
+}
+
+// The highlighted box pulses by changing BANK_FOCUS itself. The creator isn't affected:
+// ui_bottom_start() reloads the palette.
+static u16 blend(u16 a, u16 b, int t, int of)
+{
+    u16 out = 0;
+    for (int shift = 0; shift < 15; shift += 5)
+    {
+        int from = (a >> shift) & 31, to = (b >> shift) & 31;
+        out |= (from + (to - from) * t / of) << shift;
+    }
+    return out;
+}
+
+static void pulse(int tick, u16 fill)
+{
+    int t = tick % 120;
+    if (t > 60)
+        t = 120 - t;
+    BG_PALETTE_SUB[BANK_FOCUS * 16 + 1] = UI_ICE;
+    BG_PALETTE_SUB[BANK_FOCUS * 16 + 2] = blend(fill, UI_ICE, t, 80); // stops short of the border colour
 }
 
 // Top screen: the stage, the sprite at 2x and the info plate.
@@ -191,6 +211,7 @@ u16 starter_run(void)
     info_pal = palette(starter_info_pal_bin);
     shown = -1;
 
+    const u16 focus_fill = BG_PALETTE_SUB[BANK_FOCUS * 16 + 2];
     Picker p = { 0, 0, false };
     show(p.cursor);
     picker_draw(&p);
@@ -225,22 +246,23 @@ u16 starter_run(void)
 
         if (p.asking)
         {
-            if ((down & KEY_A) || ((down & KEY_TOUCH) && cy >= BUTTON_ROW - 1 && cx < YES_END))
+            if ((down & KEY_A) || ((down & KEY_TOUCH) && cy >= BUTTON_ROW && cx < YES_END))
                 chosen = true;
             else if (down & (KEY_B | KEY_TOUCH))
                 p.asking = false;
         }
         else if (down & KEY_TOUCH)
         {
-            int c = cx / PITCH, r = (cy - GRID_ROW) / CELL_H;
-            if (cy >= GRID_ROW && r < 3 && c < SHOWN && cx % PITCH < CELL_W)
+            int gx = cx - GRID_X, gy = cy - GRID_ROW;
+            int c = gx / PITCH, r = gy / ROW_PITCH;
+            if (gx >= 0 && gy >= 0 && r < 3 && c < SHOWN && gx % PITCH < CELL_W && gy % ROW_PITCH < CELL_H)
             {
                 // A tap highlights; tapping the highlighted one again picks it.
                 int i = r * STARTER_GENS + p.first + c;
                 p.asking = i == p.cursor;
                 p.cursor = i;
             }
-            else if (cy >= BUTTON_ROW - 1)
+            else if (cy >= BUTTON_ROW)
             {
                 if (cx < LEFT_END)
                     scroll(&p, -1);
@@ -274,8 +296,9 @@ u16 starter_run(void)
         // The highlighted icon hops, like the party icons in the old games.
         int c = gen_of(p.cursor) - p.first, r = row_of(p.cursor);
         int hop = (tick / 12) % 2 ? 2 : 0;
-        oamSetXY(&oamSub, r * SHOWN + c, c * PITCH * 8 + UI_SHIFT + 4, (GRID_ROW + r * CELL_H) * 8 + UI_SHIFT_Y + 4 - hop);
+        oamSetXY(&oamSub, r * SHOWN + c, cell_x(c) * 8 + UI_SHIFT + 4, cell_y(r) * 8 + UI_SHIFT_Y + 4 - hop);
         oamUpdate(&oamSub);
+        pulse(tick, focus_fill);
         NE_Process(starter_scene);
     }
 
