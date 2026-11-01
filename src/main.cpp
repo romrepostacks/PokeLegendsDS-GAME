@@ -26,7 +26,10 @@ struct SaveData
     u32 magic;
     u32 counter;
     Look look;
+    u16 starter; // National Dex number, 0 until picked
 };
+// cart_write() writes one page at most.
+static_assert(sizeof(SaveData) <= 32, "SaveData no longer fits one EEPROM page");
 
 static const u32 SAVE_MAGIC = 0x32533942; // "B9S2"
 static const u8 LOOK_VERSION = 2;
@@ -448,6 +451,15 @@ int main(int argc, char **argv)
         save_write(&data);
     }
     look_apply(&data.look);
+#ifdef TEST_STARTER
+    data.starter = 0; // test builds: always show the starter screen
+#endif
+    // Saves from before the starter screen have no starter yet, so they get the screen too.
+    if (starter_name(data.starter) == NULL)
+    {
+        data.starter = starter_run();
+        save_write(&data);
+    }
 
     PrintConsole bottomScreen;
     videoSetModeSub(MODE_0_2D);
@@ -456,6 +468,7 @@ int main(int argc, char **argv)
     printf("\x1b[1;1HPoke Legends: Beyond the Nine");
     printf("\x1b[3;1HPort Saltmere");
     printf("\x1b[4;1HD-pad: walk  B: run\n Select: bike on/off");
+    printf("\x1b[9;1HPartner: %s", starter_name(data.starter));
     printf("\x1b[14;1HSave test");
     if (backend == Backend::File)
         printf("\x1b[15;1HSave: file\n %.60s", save_path);

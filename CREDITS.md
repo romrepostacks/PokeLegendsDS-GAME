@@ -101,3 +101,11 @@ Hand-drawn LPC layers, recoloured. Layers are credited as that project lists the
 
 The bike is original work for this game, drawn by tools/art/paint_character.py. The rider's top half uses the LPC thrust and sit poses of the layers already listed.
 
+
+# Starter sprites
+
+The starter screen's battle sprites (art/starters) come from PokeAPI's sprite collection,
+generation-v/black-white: https://github.com/PokeAPI/sprites. Gen 1 to 5 are the official Black and White
+sprites. Gen 6 to 9 are fan-made sprites in the same style from that collection. The menu icons are shrunk
+from them by tools/art/make_starters.py. Pokémon and all related names are trademarks of Nintendo, Game Freak
+and The Pokémon Company.

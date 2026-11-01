@@ -268,19 +268,19 @@ static bool creator_pick(Look *look, const Creator *c, int item)
 // --- Drawing and tap areas: the Frost Night skin, art from tools/art/make_ui.py. ---
 
 // The screen is laid out in 8-pixel cells, shifted to centre 31 columns and 22 rows.
-static const int SHIFT = 4, SHIFT_Y = 8, COLUMNS = 31;
+static const int SHIFT = UI_SHIFT, SHIFT_Y = UI_SHIFT_Y, COLUMNS = 31;
 static const int TAB_X = 0, TAB_W = 3, TITLE_ROW = 3, GRID_ROW = 5, TILE_W = 7, TILE_H = 6, TILE_PITCH = 8;
 static const int STRIP_ROW = 17, STRIP_X = 2, STRIP_SHOWN = 14, BUTTON_ROW = 20;
 static const int RANDOM_END = 10, BACK_END = 17;
 static const int MAP_TEXT = 14, MAP_PANELS = 15;
 static const int TAP_BACK = -2;
 
-static u16 *text_map(void) { return (u16 *)BG_MAP_RAM_SUB(MAP_TEXT); }
-static u16 *panel_map(void) { return (u16 *)BG_MAP_RAM_SUB(MAP_PANELS); }
+u16 *ui_text_map(void) { return (u16 *)BG_MAP_RAM_SUB(MAP_TEXT); }
+u16 *ui_panel_map(void) { return (u16 *)BG_MAP_RAM_SUB(MAP_PANELS); }
 
-static void text(int x, int y, const char *s, int bank)
+void ui_text(int x, int y, const char *s, int bank)
 {
-    u16 *map = text_map();
+    u16 *map = ui_text_map();
     for (; *s; s++, x++)
     {
         int tile = UI_TILE_FONT + (*s - 32) * 2;
@@ -289,9 +289,9 @@ static void text(int x, int y, const char *s, int bank)
     }
 }
 
-static void panel(int x, int y, int w, int h, int bank)
+void ui_panel(int x, int y, int w, int h, int bank)
 {
-    u16 *map = panel_map();
+    u16 *map = ui_panel_map();
     for (int yy = 0; yy < h; yy++)
     {
         int row = yy == 0 ? 0 : yy == h - 1 ? 2 : 1;
@@ -342,32 +342,32 @@ static void creator_draw(const Look *look, const Creator *c)
     const Tab &t = TABS[c->tab];
     const u8 *fields = (const u8 *)look;
     const int random_item = t.name_count + t.swatch_count;
-    dmaFillHalfWords(0, text_map(), 2048);
-    dmaFillHalfWords(0, panel_map(), 2048);
+    dmaFillHalfWords(0, ui_text_map(), 2048);
+    dmaFillHalfWords(0, ui_panel_map(), 2048);
 
     for (int i = 0; i < TAB_COUNT; i++)
     {
         int x = TAB_X + i * TAB_W;
-        panel(x, 0, TAB_W, TAB_W, i == c->tab ? BANK_SELECTED : BANK_PANEL);
+        ui_panel(x, 0, TAB_W, TAB_W, i == c->tab ? BANK_SELECTED : BANK_PANEL);
         for (int yy = 0; yy < 3; yy++)
             for (int xx = 0; xx < 3; xx++)
-                text_map()[yy * 32 + x + xx] = (UI_TILE_ICON + i * 9 + yy * 3 + xx) |
+                ui_text_map()[yy * 32 + x + xx] = (UI_TILE_ICON + i * 9 + yy * 3 + xx) |
                                                ((i == c->tab ? BANK_ICON_ON : BANK_ICON) << 12);
     }
 
-    panel(0, TITLE_ROW, COLUMNS, 2, BANK_PANEL);
-    text(1, TITLE_ROW, t.label, BANK_GOLD_TEXT);
+    ui_panel(0, TITLE_ROW, COLUMNS, 2, BANK_PANEL);
+    ui_text(1, TITLE_ROW, t.label, BANK_GOLD_TEXT);
     if (t.name_count)
     {
         char line[16];
         sprintf(line, "Style %d of %d", fields[t.shape] + 1, t.name_count);
-        text(8, TITLE_ROW, line, BANK_TEXT);
+        ui_text(8, TITLE_ROW, line, BANK_TEXT);
         const char *name = t.names[fields[t.shape]];
-        text(COLUMNS - 1 - strlen(name), TITLE_ROW, name, BANK_TEXT);
+        ui_text(COLUMNS - 1 - strlen(name), TITLE_ROW, name, BANK_TEXT);
     }
     else
     {
-        text(8, TITLE_ROW, "Pick a colour", BANK_TEXT);
+        ui_text(8, TITLE_ROW, "Pick a colour", BANK_TEXT);
     }
 
     for (int i = 0; i < 8; i++)
@@ -379,15 +379,15 @@ static void creator_draw(const Look *look, const Creator *c)
         }
         int x = (i % 4) * TILE_PITCH, y = GRID_ROW + (i / 4) * TILE_H;
         bool selected = fields[t.shape] == i;
-        panel(x, y, TILE_W, TILE_H, c->cursor == i ? BANK_FOCUS : selected ? BANK_SELECTED : BANK_PANEL);
+        ui_panel(x, y, TILE_W, TILE_H, c->cursor == i ? BANK_FOCUS : selected ? BANK_SELECTED : BANK_PANEL);
         if (selected)
         {
             // The bar fits 7 letters: the first word here, the full name in the title.
             char word[TILE_W + 1];
             snprintf(word, sizeof(word), "%s", t.names[i]);
             word[strcspn(word, " ")] = 0;
-            panel(x, y + TILE_H - 2, TILE_W, 2, BANK_SOLID);
-            text(x + (TILE_W - strlen(word)) / 2, y + TILE_H - 2, word, BANK_DARK_TEXT);
+            ui_panel(x, y + TILE_H - 2, TILE_W, 2, BANK_SOLID);
+            ui_text(x + (TILE_W - strlen(word)) / 2, y + TILE_H - 2, word, BANK_DARK_TEXT);
         }
         Look shown = *look;
         ((u8 *)&shown)[t.shape] = i;
@@ -411,23 +411,23 @@ static void creator_draw(const Look *look, const Creator *c)
         int border = c->cursor == t.name_count + i ? 2 : fields[t.colour] == i ? 1 : 0;
         int tile = UI_TILE_SWATCH + ((k - 1) * 3 + border) * 4;
         for (int q = 0; q < 4; q++)
-            text_map()[(STRIP_ROW + q / 2) * 32 + STRIP_X + n * 2 + q % 2] = (tile + q) | (bank << 12);
+            ui_text_map()[(STRIP_ROW + q / 2) * 32 + STRIP_X + n * 2 + q % 2] = (tile + q) | (bank << 12);
     }
     if (t.swatch_count > STRIP_SHOWN)
     {
-        text(1, STRIP_ROW, "<", first ? BANK_TEXT : BANK_ICON);
-        text(COLUMNS - 1, STRIP_ROW, ">", first + STRIP_SHOWN < t.swatch_count ? BANK_TEXT : BANK_ICON);
+        ui_text(1, STRIP_ROW, "<", first ? BANK_TEXT : BANK_ICON);
+        ui_text(COLUMNS - 1, STRIP_ROW, ">", first + STRIP_SHOWN < t.swatch_count ? BANK_TEXT : BANK_ICON);
     }
 
-    panel(0, BUTTON_ROW, RANDOM_END - 1, 2, c->cursor == random_item ? BANK_FOCUS : BANK_PANEL);
-    text(1, BUTTON_ROW, "X", BANK_GOLD_TEXT);
-    text(3, BUTTON_ROW, "Random", BANK_TEXT);
-    panel(RANDOM_END, BUTTON_ROW, BACK_END - RANDOM_END - 1, 2, BANK_PANEL);
-    text(RANDOM_END + 1, BUTTON_ROW, "B Back", BANK_TEXT);
-    text(RANDOM_END + 1, BUTTON_ROW, "B", BANK_GOLD_TEXT);
+    ui_panel(0, BUTTON_ROW, RANDOM_END - 1, 2, c->cursor == random_item ? BANK_FOCUS : BANK_PANEL);
+    ui_text(1, BUTTON_ROW, "X", BANK_GOLD_TEXT);
+    ui_text(3, BUTTON_ROW, "Random", BANK_TEXT);
+    ui_panel(RANDOM_END, BUTTON_ROW, BACK_END - RANDOM_END - 1, 2, BANK_PANEL);
+    ui_text(RANDOM_END + 1, BUTTON_ROW, "B Back", BANK_TEXT);
+    ui_text(RANDOM_END + 1, BUTTON_ROW, "B", BANK_GOLD_TEXT);
     bool on_confirm = c->cursor == random_item + 1;
-    panel(BACK_END, BUTTON_ROW, COLUMNS - BACK_END, 2, on_confirm ? BANK_FOCUS : BANK_SOLID);
-    text(BACK_END + 1, BUTTON_ROW, "START Confirm", on_confirm ? BANK_TEXT : BANK_DARK_TEXT);
+    ui_panel(BACK_END, BUTTON_ROW, COLUMNS - BACK_END, 2, on_confirm ? BANK_FOCUS : BANK_SOLID);
+    ui_text(BACK_END + 1, BUTTON_ROW, "START Confirm", on_confirm ? BANK_TEXT : BANK_DARK_TEXT);
     oamUpdate(&oamSub);
 }
 
@@ -498,7 +498,8 @@ static void creator_scene(void)
     NE_2DDrawTexturedQuad(64, 32, 192, 160, 1, material);
 }
 
-static void bottom_screen_start(void)
+// The Frost night skin on the bottom screen: text and panel layers, sprites on VRAM I.
+void ui_bottom_start(void)
 {
     vramSetBankI(VRAM_I_SUB_SPRITE);
     videoSetModeSub(MODE_0_2D);
@@ -511,14 +512,10 @@ static void bottom_screen_start(void)
     dmaCopy(ui_tiles_bin, BG_TILE_RAM_SUB(0), ui_tiles_bin_size);
     dmaCopy(ui_pal_bin, BG_PALETTE_SUB, ui_pal_bin_size);
     oamInit(&oamSub, SpriteMapping_1D_32, false);
-    for (int i = 0; i < 8; i++)
-        preview_gfx[i] = oamAllocateGfx(&oamSub, SpriteSize_64x32, SpriteColorFormat_256Color);
 }
 
-static void bottom_screen_stop(void)
+void ui_bottom_stop(void)
 {
-    for (int i = 0; i < 8; i++)
-        oamFreeGfx(&oamSub, preview_gfx[i]);
     oamClear(&oamSub, 0, 0);
     oamUpdate(&oamSub);
     oamDisable(&oamSub);
@@ -539,7 +536,9 @@ static void creator_refresh(const Look *look, const Creator *c)
 
 void creator_run(Look *look)
 {
-    bottom_screen_start();
+    ui_bottom_start();
+    for (int i = 0; i < 8; i++)
+        preview_gfx[i] = oamAllocateGfx(&oamSub, SpriteSize_64x32, SpriteColorFormat_256Color);
     stage_mat = stage_texture(256, 256, ui_top_tex_bin, ui_top_pal_bin, &stage_pal);
     boy_mat = stage_texture(16, 64, ui_boy_tex_bin, ui_boy_pal_bin, &boy_pal);
     girl_mat = stage_texture(16, 64, ui_girl_tex_bin, ui_girl_pal_bin, &girl_pal);
@@ -665,5 +664,7 @@ void creator_run(Look *look)
     NE_PaletteDelete(stage_pal);
     NE_PaletteDelete(boy_pal);
     NE_PaletteDelete(girl_pal);
-    bottom_screen_stop();
+    for (int i = 0; i < 8; i++)
+        oamFreeGfx(&oamSub, preview_gfx[i]);
+    ui_bottom_stop();
 }
