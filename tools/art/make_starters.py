@@ -144,10 +144,10 @@ def stage():
     open(f"{data_dir}/starter_top_pal.bin", "wb").write(struct.pack("<16H", *colours))
 
 
-def info(gen, typ, name, final, flavour):
+def info(typ, name, final, flavour):
     """Three lines for the plate under the sprite. Colours: 1 white, 2 gold, 3 ice."""
     im = Image.new("P", (256, 32), 0)
-    lines = [((6, 0), name.upper(), 2), ((96, 0), f"{typ}  Gen {gen}", 3),
+    lines = [((6, 0), name.upper(), 2), ((96, 0), typ, 3),
              ((6, 11), flavour, 1), ((6, 22), f"Evolves into {final}", 3)]
     for (x, y), s, col in lines:
         m = mask(s)
@@ -160,7 +160,7 @@ os.makedirs(art_dir, exist_ok=True)
 blob = b""
 dex_list, names = [], []
 for typ, row in ROWS:
-    for gen, (dex, name, final, flavour) in enumerate(row, 1):
+    for dex, name, final, flavour in row:
         path = f"{art_dir}/{dex}.png"
         if not os.path.exists(path):
             urllib.request.urlretrieve(URL.format(dex), path)
@@ -176,7 +176,7 @@ for typ, row in ROWS:
         battle = indexed(crop, colours)
         pal = [0] + [pal15(c) for c in colours]
         pal += [0] * (16 - len(pal))
-        blob += sprite_tiles(icon) + nibbles(battle.tobytes()) + info(gen, typ, name, final, flavour)
+        blob += sprite_tiles(icon) + nibbles(battle.tobytes()) + info(typ, name, final, flavour)
         blob += struct.pack("<16H", *pal)
         dex_list.append(dex)
         names.append(name)

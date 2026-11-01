@@ -1,6 +1,6 @@
-// The starter screen: all 27 starters on the bottom screen in three rows (Grass, Fire, Water),
-// Gen 1 to 9 from left to right, five generations at a time. The top screen shows the one
-// under the cursor. Art comes from tools/art/make_starters.py.
+// The starter screen: one page per generation on the bottom screen, each with its three
+// starters in wide boxes (Grass, Fire, Water). The top screen shows the one under the cursor.
+// Art comes from tools/art/make_starters.py.
 
 #include <stdio.h>
 #include <string.h>
@@ -35,49 +35,28 @@ const char *starter_name(u16 dex)
 }
 
 // Bottom screen layout, in tiles.
-static const int SHOWN = 5;             // generations on screen at once
-static const int CELL_W = 5, PITCH = 6; // a cell and the gap after it
-static const int CELL_H = 5, ROW_PITCH = 6;
-static const int GEN_ROW = 0, GRID_X = 1, GRID_ROW = 2, BUTTON_ROW = 20;
-static const int LEFT_END = 7, RIGHT_START = 24, YES_END = 15;
+static const int PAGE_ROW = 0, BOX_ROW = 2, BUTTON_ROW = 20;
+static const int BOX_X = 1, BOX_W = 29, BOX_H = 5, BOX_PITCH = 6; // a box and the gap after it
+static const int COLUMNS = 31, CHOOSE_X = 8, CHOOSE_W = 15, YES_END = 15;
 
 struct Picker
 {
     int cursor; // row * STARTER_GENS + gen
-    int first;  // first generation on screen
     bool asking; // "Choose X?" is up
 };
 
-static u16 *icon_gfx[3 * SHOWN];
+static u16 *icon_gfx[3];
 
 static int row_of(int i) { return i / STARTER_GENS; }
 static int gen_of(int i) { return i % STARTER_GENS; }
-static int cell_x(int c) { return GRID_X + c * PITCH; }
-static int cell_y(int r) { return GRID_ROW + r * ROW_PITCH; }
+static int box_y(int r) { return BOX_ROW + r * BOX_PITCH; }
 
-// Scrolls so the cursor's generation is on screen.
-static void follow(Picker *p)
+// Turns the page, keeping the cursor on its row.
+static void turn(Picker *p, int step)
 {
-    int gen = gen_of(p->cursor);
-    if (gen < p->first)
-        p->first = gen;
-    if (gen >= p->first + SHOWN)
-        p->first = gen - SHOWN + 1;
-}
-
-// Scrolls one generation, taking the cursor along if it would go off screen.
-static void scroll(Picker *p, int step)
-{
-    p->first += step;
-    if (p->first < 0)
-        p->first = 0;
-    if (p->first > STARTER_GENS - SHOWN)
-        p->first = STARTER_GENS - SHOWN;
-    int gen = gen_of(p->cursor);
-    if (gen < p->first)
-        p->cursor += p->first - gen;
-    if (gen >= p->first + SHOWN)
-        p->cursor -= gen - (p->first + SHOWN - 1);
+    int page = gen_of(p->cursor) + step;
+    if (page >= 0 && page < STARTER_GENS)
+        p->cursor += step;
 }
 
 static void picker_draw(const Picker *p)
@@ -86,30 +65,33 @@ static void picker_draw(const Picker *p)
     dmaFillHalfWords(0, ui_panel_map(), 2048);
     char line[32];
 
+    int page = gen_of(p->cursor);
+    ui_panel(0, PAGE_ROW, COLUMNS, 2, BANK_PANEL);
     if (p->asking)
     {
-        ui_panel(0, GEN_ROW, 31, 2, BANK_PANEL);
         snprintf(line, sizeof(line), "Choose %s?", STARTER_NAMES[p->cursor]);
-        ui_text(1, GEN_ROW, line, BANK_GOLD_TEXT);
+        ui_text(1, PAGE_ROW, line, BANK_GOLD_TEXT);
+    }
+    else
+    {
+        // Greyed out at the ends, like the creator's colour strip arrows.
+        ui_text(7, PAGE_ROW, "<", page > 0 ? BANK_TEXT : BANK_ICON);
+        snprintf(line, sizeof(line), "Page %d of %d", page + 1, STARTER_GENS);
+        ui_text(10, PAGE_ROW, line, BANK_TEXT);
+        ui_text(23, PAGE_ROW, ">", page < STARTER_GENS - 1 ? BANK_TEXT : BANK_ICON);
     }
 
-    for (int c = 0; c < SHOWN; c++)
+    for (int r = 0; r < 3; r++)
     {
-        if (!p->asking)
-        {
-            snprintf(line, sizeof(line), "Gen %d", p->first + c + 1);
-            ui_text(cell_x(c), GEN_ROW, line, p->first + c == gen_of(p->cursor) ? BANK_GOLD_TEXT : BANK_TEXT);
-        }
-        for (int r = 0; r < 3; r++)
-        {
-            int i = r * STARTER_GENS + p->first + c, slot = r * SHOWN + c;
-            int x = cell_x(c), y = cell_y(r);
-            ui_panel(x, y, CELL_W, CELL_H, i == p->cursor ? BANK_FOCUS : BANK_PANEL);
-            dmaCopy(art(i)->icon, icon_gfx[slot], sizeof(art(i)->icon));
-            dmaCopy(art(i)->palette, SPRITE_PALETTE_SUB + slot * 16, sizeof(art(i)->palette));
-            oamSet(&oamSub, slot, x * 8 + UI_SHIFT + 4, y * 8 + UI_SHIFT_Y + 4, 0, slot, SpriteSize_32x32,
-                   SpriteColorFormat_16Color, icon_gfx[slot], -1, false, false, false, false, false);
-        }
+        int i = r * STARTER_GENS + page, y = box_y(r);
+        ui_panel(BOX_X, y, BOX_W, BOX_H, i == p->cursor ? BANK_FOCUS : BANK_PANEL);
+        ui_text(BOX_X + 6, y + 1, STARTER_NAMES[i], BANK_TEXT);
+        const char *type = STARTER_TYPES[r];
+        ui_text(BOX_X + BOX_W - 1 - strlen(type), y + 1, type, BANK_GOLD_TEXT);
+        dmaCopy(art(i)->icon, icon_gfx[r], sizeof(art(i)->icon));
+        dmaCopy(art(i)->palette, SPRITE_PALETTE_SUB + r * 16, sizeof(art(i)->palette));
+        oamSet(&oamSub, r, (BOX_X + 1) * 8 + UI_SHIFT, y * 8 + UI_SHIFT_Y + 4, 0, r, SpriteSize_32x32,
+               SpriteColorFormat_16Color, icon_gfx[r], -1, false, false, false, false, false);
     }
 
     if (p->asking)
@@ -117,19 +99,14 @@ static void picker_draw(const Picker *p)
         ui_panel(0, BUTTON_ROW, YES_END, 2, BANK_SELECTED);
         ui_text(1, BUTTON_ROW, "A", BANK_GOLD_TEXT);
         ui_text(3, BUTTON_ROW, "Yes", BANK_TEXT);
-        ui_panel(YES_END + 1, BUTTON_ROW, 31 - YES_END - 1, 2, BANK_PANEL);
+        ui_panel(YES_END + 1, BUTTON_ROW, COLUMNS - YES_END - 1, 2, BANK_PANEL);
         ui_text(YES_END + 2, BUTTON_ROW, "B", BANK_GOLD_TEXT);
         ui_text(YES_END + 4, BUTTON_ROW, "No", BANK_TEXT);
     }
     else
     {
-        // Greyed out at the ends, like the creator's colour strip arrows.
-        ui_panel(0, BUTTON_ROW, LEFT_END, 2, BANK_PANEL);
-        ui_text(1, BUTTON_ROW, "< L", p->first > 0 ? BANK_TEXT : BANK_ICON);
-        ui_panel(LEFT_END + 1, BUTTON_ROW, RIGHT_START - LEFT_END - 2, 2, BANK_SOLID);
-        ui_text(LEFT_END + 4, BUTTON_ROW, "A Choose", BANK_DARK_TEXT);
-        ui_panel(RIGHT_START, BUTTON_ROW, 31 - RIGHT_START, 2, BANK_PANEL);
-        ui_text(RIGHT_START + 3, BUTTON_ROW, "R >", p->first < STARTER_GENS - SHOWN ? BANK_TEXT : BANK_ICON);
+        ui_panel(CHOOSE_X, BUTTON_ROW, CHOOSE_W, 2, BANK_SOLID);
+        ui_text(CHOOSE_X + 3, BUTTON_ROW, "A Choose", BANK_DARK_TEXT);
     }
 }
 
@@ -204,7 +181,7 @@ static void starter_scene(void)
 u16 starter_run(void)
 {
     ui_bottom_start();
-    for (int i = 0; i < 3 * SHOWN; i++)
+    for (int i = 0; i < 3; i++)
         icon_gfx[i] = oamAllocateGfx(&oamSub, SpriteSize_32x32, SpriteColorFormat_16Color);
     stage_pal = palette(starter_top_pal_bin);
     stage_mat = texture(256, 256, starter_top_tex_bin, stage_pal, false);
@@ -212,7 +189,7 @@ u16 starter_run(void)
     shown = -1;
 
     const u16 focus_fill = BG_PALETTE_SUB[BANK_FOCUS * 16 + 2];
-    Picker p = { 0, 0, false };
+    Picker p = { 0, false };
     show(p.cursor);
     picker_draw(&p);
     keysSetRepeat(20, 6);
@@ -240,7 +217,7 @@ u16 starter_run(void)
             next_press++;
         }
 #endif
-        int was = p.cursor, first = p.first;
+        int was = p.cursor;
         bool asking = p.asking;
         int cx = (touch.px - UI_SHIFT) / 8, cy = (touch.py - UI_SHIFT_Y) / 8;
 
@@ -253,50 +230,39 @@ u16 starter_run(void)
         }
         else if (down & KEY_TOUCH)
         {
-            int gx = cx - GRID_X, gy = cy - GRID_ROW;
-            int c = gx / PITCH, r = gy / ROW_PITCH;
-            if (gx >= 0 && gy >= 0 && r < 3 && c < SHOWN && gx % PITCH < CELL_W && gy % ROW_PITCH < CELL_H)
+            int r = (cy - BOX_ROW) / BOX_PITCH;
+            if (cy < BOX_ROW)
+                turn(&p, cx < COLUMNS / 2 ? -1 : 1);
+            else if (cy >= BUTTON_ROW)
+                p.asking = true;
+            else if (cx >= BOX_X && cx < BOX_X + BOX_W && (cy - BOX_ROW) % BOX_PITCH < BOX_H)
             {
                 // A tap highlights; tapping the highlighted one again picks it.
-                int i = r * STARTER_GENS + p.first + c;
+                int i = r * STARTER_GENS + gen_of(p.cursor);
                 p.asking = i == p.cursor;
                 p.cursor = i;
-            }
-            else if (cy >= BUTTON_ROW)
-            {
-                if (cx < LEFT_END)
-                    scroll(&p, -1);
-                else if (cx >= RIGHT_START)
-                    scroll(&p, 1);
-                else
-                    p.asking = true;
             }
         }
         else if (down & KEY_A)
             p.asking = true;
-        else if ((repeat & KEY_LEFT) && gen_of(p.cursor) > 0)
-            p.cursor--;
-        else if ((repeat & KEY_RIGHT) && gen_of(p.cursor) < STARTER_GENS - 1)
-            p.cursor++;
+        else if (repeat & KEY_LEFT)
+            turn(&p, -1);
+        else if (repeat & KEY_RIGHT)
+            turn(&p, 1);
         else if ((repeat & KEY_UP) && row_of(p.cursor) > 0)
             p.cursor -= STARTER_GENS;
         else if ((repeat & KEY_DOWN) && row_of(p.cursor) < 2)
             p.cursor += STARTER_GENS;
-        else if (repeat & KEY_L)
-            scroll(&p, -1);
-        else if (repeat & KEY_R)
-            scroll(&p, 1);
-        follow(&p);
 
-        if (p.cursor != was || p.first != first || p.asking != asking)
+        if (p.cursor != was || p.asking != asking)
         {
             show(p.cursor);
             picker_draw(&p);
         }
         // The highlighted icon hops, like the party icons in the old games.
-        int c = gen_of(p.cursor) - p.first, r = row_of(p.cursor);
+        int r = row_of(p.cursor);
         int hop = (tick / 12) % 2 ? 2 : 0;
-        oamSetXY(&oamSub, r * SHOWN + c, cell_x(c) * 8 + UI_SHIFT + 4, cell_y(r) * 8 + UI_SHIFT_Y + 4 - hop);
+        oamSetXY(&oamSub, r, (BOX_X + 1) * 8 + UI_SHIFT, box_y(r) * 8 + UI_SHIFT_Y + 4 - hop);
         oamUpdate(&oamSub);
         pulse(tick, focus_fill);
         NE_Process(starter_scene);
@@ -308,7 +274,7 @@ u16 starter_run(void)
     NE_PaletteDelete(stage_pal);
     NE_PaletteDelete(battle_pal);
     NE_PaletteDelete(info_pal);
-    for (int i = 0; i < 3 * SHOWN; i++)
+    for (int i = 0; i < 3; i++)
         oamFreeGfx(&oamSub, icon_gfx[i]);
     ui_bottom_stop();
     return STARTER_DEX[p.cursor];
