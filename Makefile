@@ -35,7 +35,11 @@ IMG2DS		:= $(BLOCKSDSEXT)/nitro-engine/tools/img2ds/img2ds.py
 # is committed, so a plain `make` doesn't.
 LPC		?= ../lpc-generator
 
-.PHONY: models textures look
+.PHONY: models textures look starters
+# The starter screen's art. Downloads missing sprites into art/starters; the output is committed.
+starters:
+	$(PYTHON) -I tools/art/make_starters.py art/starters data/textures include/starter_data.h
+
 look:
 	$(PYTHON) tools/art/make_look.py $$(cygpath -w $(LPC)) data/textures include/look_data.h
 

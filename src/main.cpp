@@ -26,7 +26,10 @@ struct SaveData
     u32 magic;
     u32 counter;
     Look look;
+    u16 starter; // National Dex number, 0 until picked
 };
+// cart_write() writes one page at most.
+static_assert(sizeof(SaveData) <= 32, "SaveData no longer fits one EEPROM page");
 
 static const u32 SAVE_MAGIC = 0x32533942; // "B9S2"
 static const u8 LOOK_VERSION = 2;
@@ -180,7 +183,8 @@ static const int CHUNK_ROWS = SALTMERE_H / CHUNK_TILES;
 static NE_Model *chunks[CHUNK_COLS * CHUNK_ROWS];
 static NE_Material *npc_mat;
 
-// The harbour NPC, standing by the fountain. Sheet: tools/art/make_npc.py.
+// The harbour NPC, standing by the fountain, gives the starter (a stand-in for Hale until the
+// story scenes exist). Sheet: tools/art/make_npc.py.
 static const int NPC_X = 17, NPC_Y = 11;
 static const int NPC_CELL[] = { 2, 0, 1, 3 };   // DOWN, UP, LEFT, RIGHT
 static Player player;
@@ -251,6 +255,11 @@ static int npc_facing(void)
     if (abs(dx) > abs(dy))
         return dx < 0 ? LEFT : RIGHT;
     return dy < 0 ? UP : DOWN;
+}
+
+static bool facing_npc(void)
+{
+    return player.step == 0 && player.tx + DX[player.dir] == NPC_X && player.ty + DY[player.dir] == NPC_Y;
 }
 
 static void draw_npc(void)
@@ -372,6 +381,30 @@ static void draw_scene(void)
     draw_player();
 }
 
+// The town's bottom screen. Also redrawn after the starter screen, which takes it over.
+static void town_console(const SaveData *data, bool loaded)
+{
+    static PrintConsole bottomScreen;
+    videoSetModeSub(MODE_0_2D);
+    consoleInit(&bottomScreen, 0, BgType_Text4bpp, BgSize_T_256x256, 2, 1, false, true);
+
+    printf("\x1b[1;1HPoke Legends: Beyond the Nine");
+    printf("\x1b[3;1HPort Saltmere");
+    printf("\x1b[4;1HD-pad: walk  B: run\n Select: bike on/off");
+    const char *partner = starter_name(data->starter);
+    printf("\x1b[9;1HPartner: %s", partner ? partner : "none yet");
+    printf("\x1b[14;1HSave test");
+    if (backend == Backend::File)
+        printf("\x1b[15;1HSave: file\n %.60s", save_path);
+    else if (backend == Backend::Cart)
+        printf("\x1b[15;1HSave: cart chip, type %d\n %lu bytes", cart_type, (unsigned long)cardEepromGetSize());
+    else
+        printf("\x1b[15;1HSave: none found");
+    printf("\x1b[18;1H%s", loaded ? "Loaded saved counter" : "No save yet");
+    printf("\x1b[20;1HCounter: %lu   ", (unsigned long)data->counter);
+    printf("\x1b[23;1HA: talk, or add 1 and save");
+}
+
 int main(int argc, char **argv)
 {
     irqEnable(IRQ_HBLANK);
@@ -448,24 +481,12 @@ int main(int argc, char **argv)
         save_write(&data);
     }
     look_apply(&data.look);
-
-    PrintConsole bottomScreen;
-    videoSetModeSub(MODE_0_2D);
-    consoleInit(&bottomScreen, 0, BgType_Text4bpp, BgSize_T_256x256, 2, 1, false, true);
-
-    printf("\x1b[1;1HPoke Legends: Beyond the Nine");
-    printf("\x1b[3;1HPort Saltmere");
-    printf("\x1b[4;1HD-pad: walk  B: run\n Select: bike on/off");
-    printf("\x1b[14;1HSave test");
-    if (backend == Backend::File)
-        printf("\x1b[15;1HSave: file\n %.60s", save_path);
-    else if (backend == Backend::Cart)
-        printf("\x1b[15;1HSave: cart chip, type %d\n %lu bytes", cart_type, (unsigned long)cardEepromGetSize());
-    else
-        printf("\x1b[15;1HSave: none found");
-    printf("\x1b[18;1H%s", loaded ? "Loaded saved counter" : "No save yet");
-    printf("\x1b[20;1HCounter: %lu   ", (unsigned long)data.counter);
-    printf("\x1b[23;1HA: add 1 and save");
+#ifdef TEST_STARTER
+    // Test builds only: open the starter screen at boot, for screenshots.
+    data.starter = starter_run();
+    save_write(&data);
+#endif
+    town_console(&data, loaded);
 
 #ifdef SAVE_SELFTEST
     // Test builds only (make DEFINES=-DSAVE_SELFTEST): act as if A was pressed 3 seconds
@@ -502,7 +523,18 @@ int main(int argc, char **argv)
         cam_x = px;
         cam_z = pz;
 
-        if ((down & KEY_A) || (selftest > 0 && --selftest == 0))
+        bool press_a = (down & KEY_A) || (selftest > 0 && --selftest == 0);
+        if (press_a && facing_npc())
+        {
+            if (starter_name(data.starter) == NULL)
+            {
+                data.starter = starter_run();
+                save_write(&data);
+                town_console(&data, loaded);
+                shown_x = -1;
+            }
+        }
+        else if (press_a)
         {
             data.counter++;
             bool ok = save_write(&data);
