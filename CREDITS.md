@@ -107,5 +107,6 @@ The bike is original work for this game, drawn by tools/art/paint_character.py. 
 The starter screen's battle sprites (art/starters) come from PokeAPI's sprite collection,
 generation-v/black-white: https://github.com/PokeAPI/sprites. Gen 1 to 5 are the official Black and White
 sprites. Gen 6 to 9 are fan-made sprites in the same style from that collection. The menu icons are shrunk
-from them by tools/art/make_starters.py. Pokémon and all related names are trademarks of Nintendo, Game Freak
+from them by tools/art/make_starters.py. Base stats, starting moves and evolution levels (art/starters/data.json)
+come from PokeAPI (https://pokeapi.co) too. Pokémon and all related names are trademarks of Nintendo, Game Freak
 and The Pokémon Company.
