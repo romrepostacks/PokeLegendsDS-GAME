@@ -99,10 +99,13 @@ Ice Pick (break ice blocks), Snowshoes (deep snow), Grapple (cliffs), Raft (open
 ## Story
 
 **Prologue.** Aboard the icebreaker *Northwind*. **Prof. Hawthorn** sends you, and the expedition is led by his
-colleague **Prof. Halvard**. **Hale**, Rimefall's gym leader from Legends of 9, sees you off and gives you your
-starter. You meet the rival, **Ivo**, Halvard's kid, who resents a newcomer taking "his" place on the expedition.
+colleague **Prof. Halvard**. **Hale**, Rimefall's gym leader from Legends of 9, sees you off. You meet the rival,
+**Ivo**, Halvard's kid, who resents a newcomer taking "his" place on the expedition. You set out with no Pokémon.
 
-**Act 1 (badges 1–2): arrival.** You land at Port Saltmere and set up camp. The first heat-drill holes appear in
+**Act 1 (badges 1–2): arrival.** You land at Port Saltmere and set up camp, and you have time to walk around and
+learn the town before anything happens. Then an emergency forces you to break open a military-style supply crate
+buried in the snow, and inside are three Poké Balls: that's where your starter comes from. (Still to decide: who
+is with you, and where exactly the crate is.) The first heat-drill holes appear in
 the ice, along with "LET IT MELT" graffiti. Team Thaw is introduced as eco-radicals who say the ice cap is a prison.
 
 **Act 2 (badges 3–5): the golems.** In the ruins you find the three Regis, sealed as guardians that keep the Hollow
@@ -145,9 +148,11 @@ sea to where the white and black dragons fell. That's the hook for region 2, wit
 
 Official sprites. The wild roster leans cold: tundra, marsh, mines, hot springs and sea ice, from all generations.
 
-**Starters.** In the prologue, Hale offers every base starter from Gen 1 to Gen 9, all 27 of them, on a
-grid on the touch screen. Highlighting a starter (moving the D-pad cursor onto it, or tapping it once) shows a short preview on the top screen: its
-animated sprite, name, type, a line of flavour text and its final evolution. Tapping again confirms the pick.
+**Starters.** Partway into Act 1, the supply crate holds every base starter from Gen 1 to Gen 9, all 27 of them.
+The touch screen shows the open crate with one generation's three Poké Balls, over 9 pages ("< Page 1 of 9 >"; the
+D-pad or the arrows turn the page). Tapping a ball opens it and shows a small preview on the bottom screen. The top
+screen shows a large preview: the sprite, base stats, its Lv 5 moves, and its evolution path with the level of each
+evolution. Tapping the open ball again (or A) asks "Choose X?".
 
 | Gen | Grass | Fire | Water |
 |-----|-------|------|-------|
